@@ -510,6 +510,20 @@ h1{white-space:nowrap}
 .row .rspr{display:inline-flex;flex:none;margin-right:10px;padding:3px;border-radius:9px;background:var(--bg);align-self:center}
 .skin.aud{padding:5px 8px;font-size:12px;opacity:.75;white-space:nowrap}.skin.aud.on{opacity:1;border-color:var(--gold);color:var(--gold-d)}
 @media (max-width:560px){.skin.aud{padding:4px 6px;font-size:11px}.top{flex-wrap:wrap}.hdr-r{flex-wrap:wrap;justify-content:flex-end}}
+/* 行动图标 / 场景 / 商城 / 剧本 */
+.act .gl svg.spr{width:28px;height:28px}
+.lifehead.sc{margin:4px 0 2px;align-items:flex-start}.lifehead.sc>svg{flex:none;padding:5px;border-radius:12px;background:var(--bg);width:48px;height:48px}.lifehead.sc h3{margin:0}.lifehead.sc .note{margin:4px 0 0}
+.mtabs{display:flex;gap:6px;overflow-x:auto;padding:8px 0 6px;scrollbar-width:none}.mtabs::-webkit-scrollbar{display:none}
+.mtab{flex:none;border:2px solid var(--line);background:var(--sheet);border-radius:20px;padding:4px 11px;font:700 13px var(--body);color:var(--ink);cursor:pointer}.mtab[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.mlist{display:grid;gap:8px}
+.mitem{display:flex;align-items:center;gap:10px;padding:8px 10px;border:2px solid var(--line);border-radius:14px;background:var(--sheet)}
+.mitem.own{opacity:.6}.mitem.wishi{border-color:var(--pink);background:color-mix(in srgb,var(--pink) 8%,var(--sheet))}
+.mitem .mspr{flex:none;padding:4px;border-radius:10px;background:var(--bg);display:inline-flex}
+.mitem .mi{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.mitem .mi b{font-weight:900;font-size:14px}.mitem .mi span{font-size:11.5px;color:var(--muted)}
+.mtag{font-style:normal;font-size:10.5px;font-weight:700;color:var(--pink);margin-left:6px;border:1.5px solid currentColor;border-radius:10px;padding:0 6px;vertical-align:middle}
+.mitem .minis{flex:none;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.poem{font-family:var(--display);font-weight:900;letter-spacing:.06em}
+.chal{padding:10px 14px;display:grid;gap:6px}
 </style>
 
 <div class="app" id="app">
@@ -745,7 +759,7 @@ function wheel(title,note,segs,opt={}){
   const tot=segs.reduce((a,s)=>a+s.w,0);let c=0;
   segs.forEach(s=>{s.p=s.w/tot;s.a0=c;c+=s.p;s.a1=c});
   return new Promise(res=>{
-    openSheet(`<p class="sk">命运转盘</p><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}
+    openSheet(`<p class="sk">命运转盘</p><div class="lifehead sc">${pixArt(sceneFor(title,note),48)}<div><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}</div></div>
       <div class="wheelbox"><div class="pointer"></div><canvas id="wc"></canvas><div class="hub">命</div></div>
       <div id="wr"></div><button class="btn primary big" id="spin">转动转盘</button>
       <ul class="legend">${segs.map((s,i)=>`<li data-i="${i}"><i style="background:var(--w${i%8+1})"></i><span>${s.label}</span><b>${(s.p*100).toFixed(s.p<.1?1:0)}%</b></li>`).join('')}</ul>`);
@@ -780,7 +794,7 @@ function moneyLine(){
 }
 function nameSheet(title,note,def,gender){
   return new Promise(res=>{
-    openSheet(`<div class="sh-top"><p class="sk">取名</p></div><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}
+    openSheet(`<div class="sh-top"><p class="sk">取名</p></div><div class="lifehead sc">${pixArt('baby',48)}<div><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}</div></div>
       <div class="namebox"><span class="surfix">${esc(S.sur)}</span><input id="kidName" maxlength="6" value="${esc(def)}" autocomplete="off"><button class="btn" id="kidRand" type="button">随机</button></div>
       <p class="tip" id="kidErr"></p><button class="btn primary big" id="kidOk">就叫这个</button>`);
     const inp=$('#kidName');$('#kidRand').onclick=()=>{inp.value=given(gender);inp.focus()};
@@ -794,7 +808,7 @@ function choose(title,note,opts,autoIdx){
   if(opts.every(o=>o.dis))opts.forEach(o=>o.dis=false);
   return new Promise(res=>{
     const back=opts.find(o=>CANCEL_RE.test(o.label)&&!o.dis);
-    openSheet(`<div class="sh-top">${back?`<button class="backbtn" id="shBack">‹ 返回</button>`:''}<p class="sk">人生抉择</p></div><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}${moneyLine()}
+    openSheet(`<div class="sh-top">${back?`<button class="backbtn" id="shBack">‹ 返回</button>`:''}<p class="sk">人生抉择</p></div><div class="lifehead sc">${pixArt(sceneFor(title,note),48)}<div><h3>${title}</h3>${note?`<p class="note">${note}</p>`:''}</div></div>${moneyLine()}
       <div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}" ${o.dis?'disabled':''}><b>${o.label}</b>${o.sub?`<span>${o.sub}</span>`:''}</button>`).join('')}</div>`);
     let fin=false;const done=o=>{if(fin)return;fin=true;closeSheet();res(o)};
     sheet.querySelectorAll('.opt').forEach(b=>b.onclick=()=>done(opts[+b.dataset.i]));
@@ -945,7 +959,7 @@ async function birth(){
   log(`父母关系：${p.label}。${p.single?`你的${fa.alive?'母亲':'父亲'}${fa.alive?mo.note:fa.note}。`:''}`+apply(p.dd));
   S.sibList=mkSibs(S.sibs);
   log(S.sibs?`你上面还有 ${S.sibs} 个哥哥姐姐：${S.sibList.map(b=>b.name).join('、')}。`:'你是家里的独生子女。','dim');
-  initExt();
+  initExt();scriptInit();chalInit();
   if(S.motto)log(`${S.sur}氏家训：「${MOTTOS.find(m=>m.id===S.motto).n}」。`,'dim');
   $('#fsub').textContent=`${S.sur}氏 · 第 1 代`;
   S.hist.push({a:0,n:net(S),h:S.st.happy});setEnergy();
@@ -975,7 +989,7 @@ function renderProfile(){
   $('#prof').innerHTML=`<div class="pid"><div class="avatar">${meAvatar(58)}<small>${S.age}岁</small></div><div class="pinfo"><div class="pname">${esc(S.name)}<button class="mini profbtn" id="bProf">档案</button></div>
     <div class="tags"><span class="tag hot">${esc(S.sur)}氏第 ${S.gen} 代</span><span class="tag">${S.gender}</span><span class="tag">${cn(S.city)}</span><span class="tag">${S.family}</span>${S.co?`<span class="tag hot">${S.co.name} · ${STAGE[S.co.stage]}</span>`:''}</div></div></div>
     <div class="meters">${STATS.map(([k,n,c])=>meter(n,S.st[k],10,c)).join('')}${meter('健康',S.hp,100,'seal')}</div>
-    <p class="bodyline">${B()?bodyLine():''}</p><dl class="facts"><div><dt>学历</dt><dd>${S.edu}${S.major?' · '+MAJ[S.major].n:''}</dd></div><div><dt>身份</dt><dd>${esc(jobText())}</dd></div>${S.job&&S.job.salary?`<div><dt>收入</dt><dd>${fmtPay(S.job.salary)}</dd></div>`:''}
+    <p class="bodyline">${B()?bodyLine():''}</p><dl class="facts"><div><dt>学历</dt><dd>${eduLine()}</dd></div>${S.script?`<div><dt>剧本</dt><dd>${scriptLine()}</dd></div>`:''}<div><dt>身份</dt><dd>${esc(jobText())}</dd></div>${S.job&&S.job.salary?`<div><dt>收入</dt><dd>${fmtPay(S.job.salary)}</dd></div>`:''}
     ${S.offer&&S.stage==='uni'?`<div><dt>转正 offer</dt><dd>${S.offer.org}·${S.offer.name}</dd></div>`:''}${(S.certList||[]).length?`<div><dt>证书</dt><dd>${S.certList.map(c=>CERT[c].n).join('、')}</dd></div>`:''}<div><dt>性格</dt><dd>${persText()||'—'}</dd></div><div><dt>运势</dt><dd>${luckLine()}</dd></div>${S.goal?`<div><dt>志向</dt><dd>${goalLine()}</dd></div>`:''}<div><dt>婚育</dt><dd>${married()?'已婚':p?'恋爱中':S.everMarried?'离异/丧偶':'单身'}${kidsAlive().length?` · ${kidsAlive().length}孩`:''}</dd></div>
     <div><dt>净资产</dt><dd class="${net(S)<0?'dn':''}">${fmtW(net(S))}</dd></div>${inSchool()?`<div><dt>学业</dt><dd>${acad()}/100</dd></div>`:''}${S.hobby?`<div><dt>爱好</dt><dd>${HOBBY[S.hobby].n} Lv${S.hobbyLv||1}</dd></div>`:''}${conds().length?`<div><dt>健康状况</dt><dd class="dn">${conds().map(x=>COND[x].n).join('、')}</dd></div>`:''}</dl>`;
 }
@@ -1029,7 +1043,7 @@ function actBtn(id,t){
   const c=a.cost?a.cost(t):0;const h=(typeof a.h==='function'?a.h(t):a.h)||'';
   const g=AG[id]||['·','ink'];
   const why=st?'':whyNot(id,t);
-  return `<button class="act" style="--c:var(--${g[1]})" data-a="${id}"${t!=null?` data-t="${t}"`:''} ${st?'':'disabled'} title="${why}"><span class="gl">${g[0]}</span><b>${typeof a.n==='function'?a.n(t):a.n}</b><span>${why?`<i class="why">${why}</i>`:hintFmt(h)+(c?`${h?' · ':''}${fmtW(c)}`:'')}</span>${a.en?`<em>${IC.bolt.repeat(a.en)}</em>`:''}</button>`;
+  return `<button class="act" style="--c:var(--${g[1]})" data-a="${id}"${t!=null?` data-t="${t}"`:''} ${st?'':'disabled'} title="${why}"><span class="gl">${AICON[id]?pixArt(AICON[id],28):g[0]}</span><b>${typeof a.n==='function'?a.n(t):a.n}</b><span>${why?`<i class="why">${why}</i>`:hintFmt(h)+(c?`${h?' · ':''}${fmtW(c)}`:'')}</span>${a.en?`<em>${IC.bolt.repeat(a.en)}</em>`:''}</button>`;
 }
 function miniBtn(id,t,label){
   const st=avail(id,t);if(st===null)return '';const a=ACT[id];const c=a.cost?a.cost(t):0;
@@ -1063,7 +1077,7 @@ A('beauty',{n:'打扮 / 医美',h:'打扮短期↑，医美永久↑',en:1,show:
 A('therapy',{n:'看心理医生',h:'快乐↑',en:1,show:()=>S.age>=16&&S.st.happy<=5,cost:()=>.6,run:async()=>{log('你做了几次心理咨询，心里松快多了。'+apply({cash:-.6,happy:2}))}});
 A('relax',{n:'躺平休息',h:'快乐↑ 健康↑，耽误工作',en:1,show:()=>S.age>=16,run:async()=>{S.yr.slack=1;log('你给自己放了个长假，什么也不干。'+apply({happy:1,hp:3}))}});
 A('travel',{n:'出去旅行',h:()=>`快乐↑↑${S.trips?` · 去过 ${S.trips} 个地方`:''}`,en:1,show:()=>S.age>=16,cost:()=>r1(C().cost*.5*(S.goal==='free'?.5:1)),run:async()=>{
-  const d=pick(['云南','西藏','海南','日本','泰国','新疆','欧洲','冰岛','新西兰','敦煌','川西','土耳其'].filter(x=>!(S.tripList||[]).includes(x)));S.trips=(S.trips||0)+1;S.tripList=(S.tripList||[]).concat(d);
+  const DEST=['云南','西藏','海南','日本','泰国','新疆','欧洲','冰岛','新西兰','敦煌','川西','土耳其','埃及','摩洛哥','秘鲁','肯尼亚','北欧','南极','青海','贵州','内蒙古','越南','巴厘岛','马尔代夫','意大利','西班牙','加拿大','澳洲','南美','东北看雪'];const left=DEST.filter(x=>!(S.tripList||[]).includes(x));const d=left.length?pick(left):pick(DEST)+'（重游）';S.trips=(S.trips||0)+1;S.tripList=(S.tripList||[]).concat(d);
   log(`你去${d}玩了一趟${married()?'，带着'+spouseWord():''}。`+apply({cash:-r1(C().cost*.5*(S.goal==='free'?.5:1)),happy:2}));if(S.partner)S.partner.love=clamp(S.partner.love+8,0,100)}});
 A('lottery',{n:'买张彩票',h:'万一呢',en:0,once:1,show:()=>S.age>=18,cost:()=>.01,run:async()=>{
   const r=R();S.cash=r1(S.cash-.01);
@@ -1134,18 +1148,11 @@ const ITEMS=[
  {id:'trip',n:'环球旅行',p:30,min:18,d:{happy:3},t:'花了半年环游世界'},
  {id:'yacht',n:'游艇',p:800,min:25,d:{happy:3,app:1},t:'买了一艘游艇，周末出海'},
  {id:'jet',n:'私人飞机',p:3000,min:30,d:{happy:4},t:'买了一架私人飞机，从此不用排队安检'}];
-A('shop',{n:'买东西',h:'手机、电脑、名牌、游艇…',en:0,show:()=>S.age>=6,run:async()=>{
-  const canP=S.parents.some(p=>p.alive)&&S.pcash>0;
-  const c=await choose('想买点什么？',`你的存款 ${fmtW(S.cash)}${canP?`，父母存款 ${fmtW(S.pcash)}`:''}。`,ITEMS.filter(x=>S.age>=x.min&&!(S.items||{})[x.id]).map(x=>({label:x.n,sub:`${fmtW(x.p)}`,k:x.id,dis:S.cash<x.p&&!(canP&&S.pcash>=x.p*3)})).concat([{label:'算了',k:0}]),0);
-  if(!c.k)return false;const it=ITEMS.find(x=>x.id===c.k);
-  let payer='me';
-  if(canP&&S.pcash>=it.p*3&&(S.age<18||S.cash<it.p||S.cash<it.p*3)){
-    const p=await choose(`谁来付 ${fmtW(it.p)}？`,'',[{label:'自己付',k:'me',dis:S.cash<it.p},{label:'让父母买单',sub:S.age<18?'撒个娇':'感情会小降',k:'par'},{label:'算了',k:0}],1);
-    if(!p.k)return false;payer=p.k;
-    if(payer==='par'&&S.age>=12&&R()<(S.pcash>it.p*20?.1:.35)){S.parents.forEach(x=>x.rel=clamp(x.rel-3,0,100));log(`你想让父母买${it.n}，被拒绝了。`);return}}
-  if(!S.items)S.items={};S.items[it.id]=1;addInv({id:it.id,n:it.n,p:it.p,spr:ITEM_SPR[it.id]||'phone',src:payer==='par'?'父母买的':'购买'});sfx('coin');if(S.body)S.st.app=appBreak().total;
-  if(payer==='par'){S.pcash=r1(S.pcash-it.p);if(S.age>=18)S.parents.forEach(x=>x.rel=clamp(x.rel-2,0,100));log(`父母给你买了${it.n}：${it.t}。`+apply(it.d))}
-  else log(`你${it.t}。`+apply({...it.d,cash:-it.p}))}});
+A('shop',{n:'商城',h:'数码、时尚、宠物、奢侈品，和心愿单打通',en:0,show:()=>S.age>=6,run:async()=>{
+  const r=await openMall();if(!r)return false;
+  if(r.m==='wish')return await ACT.wish.run();
+  if(r.m==='wishit'){S.wish={n:r.it.n,since:S.age,item:r.it.id};log(`你把<b>${r.it.n}</b>列为心愿，攒钱买下它的那天会格外开心。`,'dim');return}
+  await buyItem(r.it,r.m==='par'?'par':'me')}});
 /* 伴侣 */
 A('date',{n:'去相亲约会',h:'找对象',en:1,show:()=>S.age>=18&&!S.partner&&!S.flags.solo,run:dateWheel});
 A('pDate',{n:'约会',en:1,cost:()=>.3,show:()=>S.partner&&!S.partner.married,run:async()=>{const p=S.partner;p.love=clamp(p.love+12,0,100);log(`你和${p.name}${pick(['看了场电影','去吃了火锅','压了一晚上马路','去了游乐园'])}。`+apply({cash:-.3,happy:1}))}});
@@ -1209,7 +1216,8 @@ function panelAct(){
     <p class="tip">还剩 ${S.en}/${S.enMax} 点精力，用完点“下一年”。</p>
     ${S.enMax===0?'<p class="tip">你还太小，只能吃饭睡觉长身体。点“下一年”继续。</p>':''}
     ${(()=>{const rc=recommend().filter(([id,,t])=>avail(id,t)===true);return rc.length?`<div class="paper reco"><span class="lab">本年建议</span><div class="minis">${rc.map(([id,why,t])=>`<button class="mini reco-b" data-a="${id}"${t!=null?` data-t="${t}"`:''}><b>${typeof ACT[id].n==='function'?ACT[id].n(t):ACT[id].n}</b> · ${why}</button>`).join('')}</div></div>`:''})()}
-    ${S.wish&&wishOf()?`<div class="paper wishcard"><span class="lab">心愿</span><b>${S.wish.n}</b><span>${fmtW(wishOf().p)} · 已惦记 ${S.age-S.wish.since} 年${S.age-S.wish.since>=3?' · 再不圆就要淡了':''}</span></div>`:''}
+    ${chalHTML()}
+    ${S.wish&&wishOf()?`<div class="paper wishcard"><span class="lab">心愿</span><b>${S.wish.n}</b><span>${fmtW(wishOf().p)} · 已惦记 ${S.age-S.wish.since} 年${S.age-S.wish.since>=3?' · 再不圆就要淡了':''} · 在商城或“圆梦”里买</span></div>`:''}
     ${S.age>=3?bodyCardHTML():''}
     ${g('校园',['uniLife'])}
     ${g('自我',['study','play','hobby','hobbyGig','body','gym','cure','beauty','therapy','relax','travel'])}
@@ -1568,7 +1576,7 @@ async function milestones(){
   const a=S.age;
   if(a===3)log(S.st.money>=6?'你进了一所双语幼儿园，每天学 ABC。':'你上了家附近的幼儿园。');
   if(a===6)await primary();
-  if(a===12&&S.stage==='school'){const cs=cshort(S.city);S.schName=[`${cs}乡镇中学`,`${cs}第${['二','五','十一'][ri(0,2)]}中学`,`${cs}外国语学校`,`${cs}国际学校初中部`][S.schoolQ];log(`小学毕业，你升入了<b>${S.schName}</b>。`)}
+  if(a===12&&S.stage==='school'){const cs=cshort(S.city);S.schName=[`${cs}乡镇中学`,`${cs}第${['二','五','十一'][ri(0,2)]}中学`,`${cs}外国语学校`,`${cs}国际学校初中部`][S.schoolQ];eduPush(`升入${S.schName}`);log(`小学毕业，你升入了<b>${S.schName}</b>。`)}
   if(a===15&&S.stage==='school')await zhongkao();
   if(S.pending&&S.pending.age===a){const p=S.pending;S.pending=null;await PEND[p.type](p)}
   if(!S.alive)return;
@@ -1595,7 +1603,7 @@ async function primary(){
     {label:'重点小学',w:8+m*5+(t===1?10:0),g:1,q:2,d:'学区房的意义就在这里。'},
     {label:'国际学校',w:m>=8?35:m>=6?5:0,g:2,q:3,d:'一年学费二十万，同学非富即贵。'}]);
   const cs=cshort(S.city);S.schName=[`${cs}郊区村小`,`${cs}第${['一','三','五','八'][ri(0,3)]}小学`,`${cs}实验小学`,`${cs}国际学校`][r.q];
-  S.schoolQ=r.q;S.stage='school';S.edu='小学在读';S.acad=clamp(20+S.st.int*3+r.q*5,0,100);log(`你进入<b>${S.schName}</b>读书（${r.label}）。`,'ms');
+  S.schoolQ=r.q;S.stage='school';S.edu='小学在读';S.acad=clamp(20+S.st.int*3+r.q*5,0,100);log(`你进入<b>${S.schName}</b>读书（${r.label}）。`,'ms');eduPush(`${S.schName}（${r.label}）`);
 }
 async function zhongkao(){
   const i=S.st.int,q=S.schoolQ,ac=acad();
@@ -1607,7 +1615,7 @@ async function zhongkao(){
   if(S.pcash>=300)segs.push({label:'国际高中',w:25,g:1,hs:'intl',d:'走国际路线，准备出国。'});
   const r=await wheel('中考',`学业 ${ac} · 智力 ${i} · ${['乡镇','普通','重点','国际'][q]}初中`,segs);
   const cs=cshort(S.city);S.schName={key:`${cs}一中`,normal:`${cs}第${['四','六','七','九'][ri(0,3)]}中学`,voc:`${cs}职业中专`,intl:`${cs}国际学校高中部`,drop:''}[r.hs];
-  S.hs=r.hs;log(`中考结束，你去了<b>${S.schName||r.label}</b>（${r.label}）。`,'ms');
+  S.hs=r.hs;log(`中考结束，你去了<b>${S.schName||r.label}</b>（${r.label}）。`,'ms');eduPush(`中考 → ${S.schName||r.label}`);
   if(r.hs==='key'||r.hs==='normal'){S.edu='高中在读';S.pending={age:18,type:'gaokao'}}
   else if(r.hs==='intl'){S.edu='高中在读';S.pending={age:18,type:'abroadUni'}}
   else if(r.hs==='voc'){S.edu='职高在读';S.pending={age:18,type:'voc'}}
@@ -1653,7 +1661,7 @@ const PEND={
     else if(t==='bachelor'){S.edu=S.abroad?'海外本科':'本科';S.eduRank=Math.max(S.eduRank,S.uniRank)}
     else if(t==='master'){S.edu='硕士';S.eduRank=Math.max(S.eduRank,S.uniRank)+1}
     else if(t==='phd'){S.edu='博士';S.eduRank+=1;honor(15,`${S.name}获得博士学位`)}
-    S.abroad=false;log(`你从${S.school}毕业，拿到了<b>${S.edu}</b>学历。`,'ms');S.stage='idle';await afterGrad();
+    S.abroad=false;log(`你从${S.school}毕业，拿到了<b>${S.edu}</b>学历。`,'ms');eduPush(`${S.school}毕业 · ${S.edu}${S.acad!=null?' · 学业 '+acad():''}`);S.stage='idle';await afterGrad();
   },
   async kaoyan2(){await kaoyan(false,true)},
   async kaogong2(){await kaogong(false,true)},
@@ -1664,10 +1672,14 @@ const PEND={
     await jobWheel(S.age>=35?'年纪大了，找工作越来越难。':'');
   },
 };
+function goJail(yrs){S.jail=yrs;S.stage='jail';S.flags.jailed=1;if(S.job&&S.job.kind!=='retired')S.job=null;
+  if(S.pending&&['grad','gaokao','abroadUni','voc','kaoyan2','kaogong2'].includes(S.pending.type)){S.pending=null;if(S.edu.includes('在读'))S.edu=S.edu.replace('在读','肄业');log('学校知道后把你开除了。','bad')}}
 function enroll(sch,city,rank,type,yrs,abroad){
+  if(S.job&&S.job.kind!=='retired'&&S.job.kind!=='boss'){log(`你辞去了${S.job.name}的工作，专心读书。`,'dim');S.job=null}
+  if(S.co&&!S.co.retired&&!S.co.listed){S.co.retired=1;S.job=null;log(`${S.co.name}交给了职业经理人打理，你去读书了。`,'dim')}else if(S.co&&S.job&&S.job.kind==='boss'){S.job=null}
   S.school=sch;S.uniRank=rank;S.studyType=type;S.stage='uni';if(city)S.city=city;S.acad=clamp(Math.round(acad()*.6+20),0,100);S.fails=0;S.lab=0;
   S.edu={college:'专科在读',bachelor:'本科在读',master:'硕士在读',phd:'博士在读'}[type];
-  S.pending={age:S.age+yrs,type:'grad'};
+  S.pending={age:S.age+yrs,type:'grad'};eduPush(`${sch} · ${{college:'专科',bachelor:'本科',master:'硕士',phd:'博士'}[type]}${S.major&&MAJ[S.major]?'·'+MAJ[S.major].n:''}${abroad?'（留学）':''}`);
   if(!abroad&&type!=='master'&&type!=='phd')log(`你考入<b>${sch}</b>，来到${cn(S.city)}开始大学生活。`,'ms');
 }
 async function pickMajor(college){
@@ -1704,7 +1716,7 @@ async function afterGrad(){
   else if(c.k==='zsb'){const r=await wheel('专升本考试','',[{label:'考上了',w:20+S.st.int*4,g:2,d:'去二本院校读两年。'},{label:'没考上',w:30,g:-2,d:'只能拿着专科文凭找工作了。'}]);
     if(r.label==='考上了'){log('专升本成功！');enroll(sname('@学院'),'home',3,'bachelor',2)}else{log('专升本失败。'+apply({happy:-1}));await jobWheel()}}
   else if(c.k==='ky')await kaoyan(false);
-  else if(c.k==='by'){let sch=[S.school,S.city];if(R()<.5){const tt=TIERS.find(x=>x.rank===Math.min(7,Math.round(S.uniRank)+1));if(tt&&tt.pool.length)sch=[...pick(tt.pool)]}honor(8,`${S.name}保研${sch[0]}`);log(`你保研到<b>${sch[0]}</b>。`+apply({happy:2}),'ms');enroll(sch[0],sch[1],Math.max(S.uniRank,4),'master',3)}
+  else if(c.k==='by'){let sch=[S.school,S.city];if(R()<.5){const tt=TIERS.find(x=>x.rank===Math.min(7,Math.round(S.uniRank)+1));if(tt&&tt.pool.length)sch=[...pick(tt.pool)]}S.flags.baoyan=1;honor(8,`${S.name}保研${sch[0]}`);log(`你保研到<b>${sch[0]}</b>。`+apply({happy:2}),'ms');enroll(sch[0],sch[1],Math.max(S.uniRank,4),'master',3)}
   else if(c.k==='phd')await phd();
   else if(c.k==='prof')await prof();
   else if(c.k==='gk')await kaogong(false);
@@ -2095,7 +2107,7 @@ function finish(){
   auto=false;closeSheet();$('#bar').hidden=true;$('#app').classList.add('ended');
   if(S.age>=100)honor(10,`${S.name}百岁寿辰`);if(net(S)>=10000&&!S.once.yi){S.once.yi=1;honor(40,`${S.name}家资过亿`)}
   const nw=net(S),ka=kidsAlive(),avgRel=ka.length?ka.reduce((a,k)=>a+k.rel,0)/ka.length:0;
-  const sc=Math.round(Math.max(0,S.eduRank)*4+Math.max(0,Math.log10(Math.max(nw,1)))*9+S.st.happy*2+Math.min(S.age,100)*.25+(S.everMarried?5:0)+Math.min(S.kids.length,3)*2+avgRel/12+(S.st.int+S.st.app+S.st.str)*.4+(S.flags.goalDone?15:0)+Math.min(S.trips||0,8)*.5+friends().filter(f=>f.best).length*2);
+  const sc=Math.round(Math.max(0,S.eduRank)*4+Math.max(0,Math.log10(Math.max(nw,1)))*9+S.st.happy*2+Math.min(S.age,100)*.25+(S.everMarried?5:0)+Math.min(S.kids.length,3)*2+avgRel/12+(S.st.int+S.st.app+S.st.str)*.4+(S.flags.goalDone?15:0)+Math.min(S.trips||0,8)*.5+friends().filter(f=>f.best).length*2+(S.script&&SCRIPTS[S.script]&&SCRIPTS[S.script].end(S)?20:0)+(S.chalDone||[]).length*5);
   const G=[[158,'SSS','天选之子'],[140,'SS','人生赢家'],[122,'S','顺风顺水'],[108,'A','小有所成'],[95,'B','平凡一生'],[80,'C','命运多舛'],[0,'D','人间疾苦']].find(g=>sc>=g[0]);
   S.grade=G[1];S.score=sc;const ta=TA();
   const epi=S.age<25?'来不及长大，就匆匆告别了这个世界。':S.age>=95?`${ta}活成了整个小区的传奇。`:nw>=3000?'钱还没花完，人先走了。':S.edu==='博士'?`${ta}这辈子读过的书，比走过的路还多。`:S.st.happy>=10?'这一生，笑的时候比哭的时候多。':S.flags.solo?'一个人来，一个人走，自由自在。':ka.length>=2&&avgRel>=60?`${ta}把一辈子都给了这个家，孩子们都很爱${ta}。`:nw<0?'走的时候，还欠着一屁股债。':'平凡的一生，也是认真活过的一生。';
@@ -2116,6 +2128,8 @@ function finish(){
       <div><dt>城市</dt><dd>${cn(S.city)}</dd></div>
       <div><dt>遗产</dt><dd class="${E.total<0?'dn':''}">${fmtW(E.total)}</dd></div>
       <div><dt>人生评分</dt><dd>${sc}</dd></div>
+      ${S.script&&SCRIPTS[S.script]?`<div style="grid-column:1/-1"><dt>人生剧本</dt><dd>${SCRIPTS[S.script].n}（${SCRIPTS[S.script].trend}）· ${SCRIPTS[S.script].end(S)?'✓ '+SCRIPTS[S.script].endT+' · +20 分':'未达成'} · 转折 ${(S.scriptHit||[]).length}/${SCRIPTS[S.script].plot.length}</dd></div>`:''}
+      ${S.chal?`<div style="grid-column:1/-1"><dt>本局挑战</dt><dd>${S.chal.map(id=>{const c=CHAL.find(x=>x.id===id);return (S.chalDone.includes(id)?'✓ ':'✗ ')+(c?c.n:id)}).join(' · ')}</dd></div>`:''}
       <div><dt>志向</dt><dd>${S.goal?`${GOALS[S.goal].n}${S.flags.goalDone?' · 已达成 +15 分':` · 完成 ${Math.round(GOALS[S.goal].prog()*100)}%`}`:'没立过志向'}</dd></div><div><dt>性格</dt><dd>${persText()||'—'}</dd></div><div><dt>圆过的梦</dt><dd>${(S.wishDone||[]).length?S.wishDone.slice(-4).join('、'):'一个也没有'}${S.wishLost?`（${S.wishLost} 个愿望落空）`:''}</dd></div>
       ${S.coCount?`<div style="grid-column:1/-1"><dt>创业经历</dt><dd>${S.coLog.concat(S.co?[`${S.co.name}（${STAGE[S.co.stage]}）`]:[]).join('、')}</dd></div>`:''}
       <div style="grid-column:1/-1"><dt>结局</dt><dd>${S.cause}</dd></div>
@@ -2163,7 +2177,7 @@ function startHeir(ki,mode,pickT){
     sibList:o.kids.filter(x=>x.alive&&x!==k).map(x=>({name:x.name,gender:x.gender,age:x.age,rel:mode==='split'?ri(70,85):mode==='all'?ri(15,35):60,cash:x.cash+(mode==='split'&&E.total>0?E.total/heirN:0),owed:mode==='all'&&E.total>0?r1(E.total/heirN):0,job:x.job,salary:x.salary,alive:true})),
     family:`${o.sur}氏第 ${prevGen+1} 代`,dynasty:o.dynasty.concat([{gen:prevGen,name:prevName,gender:prevGender,age:o.age,g:o.grade,net:E.total,spouse:partner&&partner.married?partner.name:'',kids:o.kids.map(x=>({name:x.name,gender:x.gender,age:x.age,alive:x.alive,spouse:x.spouse?x.spouse.name:'',gk:(x.gkids||[]).map(g=>g.name),heir:x===k}))}])});
   tal.forEach(t=>S.flags[t.id]=1);
-  S.luck=mkLuck();S.pers=mkPers(o.pers);S.tgen={};S.goal=null;S.trips=0;S.tripList=[];S.rentCity=null;const awake=[];
+  S.luck=mkLuck();S.pers=mkPers(o.pers);S.tgen={};S.goal=null;S.trips=0;S.tripList=[];S.rentCity=null;S.eduLog=[];const awake=[];
   inh.forEach(t=>{const n=((o.tgen||{})[t.id]||1)+1;S.tgen[t.id]=n;if(n===3)awake.push(t)});
   S.cash=r1(k.cash+share-inKind);S.inv=ren?[]:(o.inv||[]).filter(x=>x.p>=1).map(x=>({...x,src:'继承',age:null}));
   if(k.house)S.houses.push({city:k.city,type:'small',m:.7,loan:0,pay:0,yrs:0,rent:false});
@@ -2189,7 +2203,7 @@ function startHeir(ki,mode,pickT){
   else log(mode==='all'?`你继承了全部家产 ${fmtW(E.total)}${E.total>0&&sibN>0?`。兄弟姐妹一分没拿到，心里都憋着气`:''}。`:`遗产 ${fmtW(E.total)} 由 ${heirN} 人平分，你分到 ${fmtW(share)}${share<inKind?`。房产车辆都归你，你需要补偿兄弟姐妹 ${fmtW(inKind-share)}`:''}。`,'ms');
   log(`家族遗传天赋：${tal.map(t=>t.n).join('、')}。`,'dim');
   awake.forEach(t=>{const k2=pick(['int','app','str']);S.st[k2]=clamp(S.st[k2]+2,0,20);log(`祖传天赋「${t.n}」连传三代，血脉觉醒！`+` <em class="fx"><span class="up">${NM[k2]}+2</span></em>`,'gold')});
-  log(`性格：<b>${persText()}</b>。`,'dim');
+  log(`性格：<b>${persText()}</b>。`,'dim');scriptInit();chalInit();S.birthNet=Math.max(1,r1(share));
   S.hist.push({a:S.age,n:net(S),h:S.st.happy});setEnergy();
   $('#app').classList.remove('ended');$('#bar').hidden=false;$('#fsub').textContent=`${S.family}`;tab='act';
   busy=false;screen='game';renderGame();renderAll();window.scrollTo(0,0);queueSave(true);
@@ -2522,7 +2536,7 @@ A('ilAsk',{n:()=>'找'+inlawWord()+'要钱',h:'感情↓',en:0,once:1,show:()=>m
 function lifeSummary(){
   const E=estateOf(S);
   return {name:S.name,sur:S.sur,gen:S.gen,gender:S.gender,age:S.age,g:S.grade,sc:S.score,family:S.family,edu:S.edu,school:S.school,city:cn(S.city),jobs:[...new Set(S.jobs)].slice(-4),
-    spouse:S.partner&&S.partner.married?S.partner.name:(S.everMarried?'（已离/丧偶）':''),kids:S.kids.map(k=>k.name),net:E.total,cause:S.cause,goal:S.goal?GOALS[S.goal].n+(S.flags.goalDone?'（达成）':''):'',pers:persText(),talents:S.talents.map(t=>t.n),honors:S.honors.slice(-8).map(h=>h.t),fame:S.fame,
+    spouse:S.partner&&S.partner.married?S.partner.name:(S.everMarried?'（已离/丧偶）':''),kids:S.kids.map(k=>k.name),net:E.total,cause:S.cause,goal:S.goal?GOALS[S.goal].n+(S.flags.goalDone?'（达成）':''):'',script:S.script&&SCRIPTS[S.script]?SCRIPTS[S.script].n+(SCRIPTS[S.script].end(S)?'（达成）':''):'',pers:persText(),talents:S.talents.map(t=>t.n),honors:S.honors.slice(-8).map(h=>h.t),fame:S.fame,
     friends:friends().map(f=>f.name),mentors:mentors().map(m=>m.trait+m.name),dyn:S.dynasty.map(d=>`${d.gen}·${d.name}`),ach:ACH.filter(x=>x[3](S)).map(x=>x[1]),at:Date.now()};
 }
 function histListHTML(r){
@@ -2534,7 +2548,7 @@ function openLife(x){
   openSheet(`<div class="sh-top"><button class="backbtn" id="shBack">‹ 返回</button><p class="sk">往世档案</p></div>
     <div class="lifehead">${avatarSVG({name:x.name,gender:x.gender,age:x.age},64)}<div><h3>${esc(x.name)}</h3><p class="note">${esc(x.sur)}氏第 ${x.gen} 代 · ${x.gender} · ${esc(x.family||'')} · 享年 ${x.age} 岁 · 评级 ${x.g}（${x.sc} 分）</p></div></div>
     <dl class="rgrid">${row('学历',`${x.edu}${x.school?' · '+esc(x.school):''}`)}${row('城市',x.city)}${row('职业',(x.jobs||[]).join(' → '))}${row('配偶',esc(x.spouse||''))}${row('子女',(x.kids||[]).map(esc).join('、'))}${row('遗产',fmtW(x.net||0))}${row('结局',x.cause)}${row('家族声望',x.fame)}
-    ${row('志向',x.goal)}${row('性格',x.pers)}${row('天赋',(x.talents||[]).join('、'))}${row('朋友',(x.friends||[]).map(esc).join('、'))}${row('贵人',(x.mentors||[]).map(esc).join('、'))}${row('先祖',(x.dyn||[]).map(esc).join(' → '))}${row('家族荣誉',(x.honors||[]).map(esc).join('；'))}${row('成就',(x.ach||[]).join('、'))}</dl>`);
+    ${row('剧本',x.script)}${row('志向',x.goal)}${row('性格',x.pers)}${row('天赋',(x.talents||[]).join('、'))}${row('朋友',(x.friends||[]).map(esc).join('、'))}${row('贵人',(x.mentors||[]).map(esc).join('、'))}${row('先祖',(x.dyn||[]).map(esc).join(' → '))}${row('家族荣誉',(x.honors||[]).map(esc).join('；'))}${row('成就',(x.ach||[]).join('、'))}</dl>`);
   const done=()=>closeSheet();$('#shBack').onclick=done;ov.onclick=e=>{if(e.target===ov)done()};escFn=done;
 }
 
@@ -3284,7 +3298,7 @@ function lawTick(){
     S.flags.caught=1;S.fame=Math.max(0,(S.fame||0)-20);
     const ret=S.job&&S.job.kind==='retired';log(`东窗事发！${ret?'退休前':S.job?S.job.name+'任上的':''}问题被查了出来。没收违法所得，罚款 ${fmtW(fine)}。`+apply({cash:-fine,happy:-5}),'bad');
     if(S.job&&S.job.kind!=='retired'){S.job=null;S.co=null}
-    if(yrs){S.jail=yrs;S.stage='jail';S.flags.jailed=1;log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else if(ret){S.job.salary=r1(S.job.salary*.5);log('退休待遇被取消了一半。','bad')}else{S.stage='idle';log('你被开除了，档案上留下了处分。','bad')}
+    if(yrs){goJail(yrs);log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else if(ret){S.job.salary=r1(S.job.salary*.5);log('退休待遇被取消了一半。','bad')}else{S.stage='idle';log('你被开除了，档案上留下了处分。','bad')}
     S.dirty=0;
   }else if(R()<.1)S.dirty=Math.max(0,S.dirty-1);
 }
@@ -3473,14 +3487,16 @@ function wishTick(){
   if(!S.wish&&R()<(hasP('spend')?.5:hasP('thrift')?.2:.33)){const c=WISH.filter(w=>S.age>=w.a[0]&&S.age<=w.a[1]&&(!w.c||w.c())&&!(S.wishDone||[]).includes(w.n));
     if(!c.length)return;const w=pick(c);S.wish={n:w.n,since:S.age};log(`你心里种下了一个愿望：<b>${w.n}</b>（约 ${fmtW(w.p)}）。`,'dim')}
 }
-const wishOf=()=>S.wish&&WISH.find(w=>w.n===S.wish.n);
+const WISH_ITEM={'一部智能手机':'phone','限量版球鞋':'shoes','一把吉他':'guitar','一台游戏电脑':'pc','一台轻薄笔记本':'laptop','一台单反相机':'cam','养一只猫':'cat','一辆小电驴':'ebike','一个名牌包':'bag','一块好表':'watch','一台按摩椅':'massage','一套好茶具':'tea','专业钓鱼装备':'fish','一幅名家字画':'art'};
+const wishOf=()=>{if(!S||!S.wish)return null;if(S.wish.item){const it=ITEMS.find(x=>x.id===S.wish.item);return it?{n:S.wish.n,p:it.p,d:it.d,item:it.id}:null}const w=WISH.find(w=>w.n===S.wish.n);return w?{...w,item:WISH_ITEM[w.n]}:null};
 A('wish',{n:()=>S.wish?`圆梦：${S.wish.n}`:'心愿',h:()=>{const w=wishOf();return w?`${fmtW(w.p)} · 惦记 ${S.age-S.wish.since} 年`:''},en:0,show:()=>!!wishOf(),run:async()=>{
   const w=wishOf(),canP=S.age<22&&S.parents.some(p=>p.alive)&&S.pcash>=w.p*2;
   const c=await choose(`圆梦：${w.n}`,`惦记了 ${S.age-S.wish.since} 年。圆梦比随手买东西快乐得多；拖太久这个念想就淡了。`,[{label:'自己掏钱',sub:fmtW(w.p),k:'me',dis:S.cash<w.p},...(canP?[{label:'求爸妈',sub:'成功率看家里条件',k:'par'}]:[]),{label:'算了，再攒攒',k:0}],S.cash>=w.p*3?0:canP?1:2);
   if(!c.k)return false;
   if(c.k==='par'){if(R()<(S.st.money>=6?.85:.5)){S.pcash=r1(S.pcash-w.p);log(`爸妈帮你实现了心愿：${w.n}。`)}else{log(`你求爸妈给你买${w.n}，被拒绝了：“等你长大自己挣。”`+apply({happy:-1}));return}}
   else S.cash=r1(S.cash-w.p);
-  if(w.car){const cn2=pick(WISH_CAR[w.n]||['车']);S.cars.push({n:cn2,p:w.p,v:w.p,spr:w.n==='一辆房车'?'rv':w.p>=50?'luxcar':'car'});log(`提的是一辆${cn2}。`,'dim')}
+  if(w.item){S.items=S.items||{};S.items[w.item]=1;addInv({id:w.item,n:w.n,p:w.p,spr:ITEM_SPR[w.item]||WISH_SPR[w.n]||'gift',src:'心愿'})}
+  else if(w.car){const cn2=pick(WISH_CAR[w.n]||['车']);S.cars.push({n:cn2,p:w.p,v:w.p,spr:w.n==='一辆房车'?'rv':w.p>=50?'luxcar':'car'});log(`提的是一辆${cn2}。`,'dim')}
   else if(WISH_SPR[w.n])addInv({id:'wish',n:w.n,p:w.p,spr:WISH_SPR[w.n],src:'心愿'});sfx('good');
   if(w.love&&S.partner)S.partner.love=clamp(S.partner.love+w.love,0,100);
   if(w.fam){kidsAlive().forEach(k=>k.rel=clamp(k.rel+8,0,100));if(S.partner)S.partner.love=clamp(S.partner.love+8,0,100)}
@@ -3489,6 +3505,7 @@ A('wish',{n:()=>S.wish?`圆梦：${S.wish.n}`:'心愿',h:()=>{const w=wishOf();r
   log(`心愿达成：<b>${w.n}</b>。${pick(['你开心得像个孩子。','念叨了这么久，终于实现了。','那天晚上你笑着睡着了。'])}`+apply({...w.d,happy:(w.d.happy||0)+2+(hasP('spend')?1:0)}),'gold')}});
 ITEMS.push(
  {id:'tablet',n:'平板电脑',p:.4,min:10,d:{happy:1},t:'买了平板，追剧刷题两不误'},
+ {id:'laptop',n:'轻薄笔记本',p:.8,min:15,d:{int:1},t:'买了台轻薄本，走哪儿带哪儿'},
  {id:'earph',n:'降噪耳机',p:.2,min:14,d:{happy:1},t:'戴上降噪耳机，世界清静了'},
  {id:'cam',n:'微单相机',p:1,min:16,d:{happy:1},t:'开始扫街拍照'},
  {id:'guitar',n:'吉他',p:.2,min:12,d:{happy:1},t:'买了把吉他，邻居开始敲墙'},
@@ -3679,7 +3696,7 @@ function initExt(inhPers){
 }
 async function extTick(){
   if(!S.luck)S.luck=mkLuck();if(!S.pers)S.pers=mkPers();
-  luckShift();persTick();wishTick();uniTick();await goalTick();
+  luckShift();persTick();wishTick();uniTick();await goalTick();await scriptTick();chalTick();
   await rentTick();await feudTick();await relTick();await lifeStageTick();
 }
 
@@ -3807,8 +3824,10 @@ const sec=(t,inner)=>inner?`<span class="lab">${t}</span>${inner}`:'';
 const chips=(arr,cls)=>arr&&arr.length?`<div class="chips">${arr.map(x=>`<span class="chip ${cls||''}">${x}</span>`).join('')}</div>`:'';
 function openProfile(){
   const ab=appBreak(),l=luckNow();
-  const body=`<dl class="rgrid">${rowH('出身',`${S.family} · ${cn(S.phome?S.phome.city:S.city)}`)}${rowH('家族',`${esc(S.sur)}氏第 ${S.gen} 代 · ${FAMLV[famLv()][1]}`)}${rowH('学历',`${S.edu}${S.school?' · '+S.school:''}${S.major?' · '+MAJ[S.major].n:''}`)}${rowH('身份',esc(jobText()))}${rowH('志向',S.goal?`${GOALS[S.goal].n} · ${GOALS[S.goal].txt()}${S.flags.goalDone?' · 已达成':''}`:'')}${rowH('性格',persText())}${rowH('运势',luckLine())}${rowH('身材',B()?`${bodyLine()} · 颜值 ${ab.total}（底子 ${ab.face}）`:'')}${rowH('健康状况',conds().length?conds().map(x=>COND[x].n).join('、'):'')}${rowH('爱好',S.hobby?`${HOBBY[S.hobby].n} Lv${S.hobbyLv||1}`:'')}${rowH('人脉',S.netw?`${S.netw} 点`:'')}${rowH('心愿',S.wish?`${S.wish.n}（惦记 ${S.age-S.wish.since} 年）`:'')}</dl>
+  const body=`<dl class="rgrid">${rowH('出身',`${S.family} · ${cn(S.phome?S.phome.city:S.city)}`)}${rowH('家族',`${esc(S.sur)}氏第 ${S.gen} 代 · ${FAMLV[famLv()][1]}`)}${rowH('学历',eduLine())}${rowH('剧本',S.script&&SCRIPTS[S.script]?`${SCRIPTS[S.script].n} · ${SCRIPTS[S.script].trend} · 转折 ${(S.scriptHit||[]).length}/${SCRIPTS[S.script].plot.length}`:'')}${rowH('身份',esc(jobText()))}${rowH('志向',S.goal?`${GOALS[S.goal].n} · ${GOALS[S.goal].txt()}${S.flags.goalDone?' · 已达成':''}`:'')}${rowH('性格',persText())}${rowH('运势',luckLine())}${rowH('身材',B()?`${bodyLine()} · 颜值 ${ab.total}（底子 ${ab.face}）`:'')}${rowH('健康状况',conds().length?conds().map(x=>COND[x].n).join('、'):'')}${rowH('爱好',S.hobby?`${HOBBY[S.hobby].n} Lv${S.hobbyLv||1}`:'')}${rowH('人脉',S.netw?`${S.netw} 点`:'')}${rowH('心愿',S.wish?`${S.wish.n}（惦记 ${S.age-S.wish.since} 年）`:'')}</dl>
     ${sec('属性',`<div class="meters">${STATS.map(([k,n,c])=>meter(n,S.st[k],10,c)).join('')}${meter('健康',S.hp,100,'seal')}${inSchool()?meter('学业',acad(),100,'jade'):''}</div>`)}
+    ${S.eduLog&&S.eduLog.length?sec('学历履历',`<div class="paper rows">${S.eduLog.map(e=>`<div class="row"><div class="ri"><b>${e.t}</b><span>${e.a} 岁</span></div></div>`).join('')}</div>`):''}
+    ${S.script&&SCRIPTS[S.script]?sec('命书',`<p class="cs poem">${SCRIPTS[S.script].poem.join('，')}。</p>`):''}${chalHTML()}
     ${sec('天赋',chips(S.talents.map(t=>`<span title="${t.d}">${t.n}</span>`)))}
     ${sec('证书与技能',chips([...(S.certList||[]).map(c=>CERT[c].n),...(S.flags.cadre?['学生会干部']:[]),...(S.flags.compAward?['竞赛国奖']:[]),...(S.flags.exch?['海外交换']:[]),...(S.flags.haigui?['海归']:[]),...(S.flags.pr?['海外永居']:[])],'ach'))}
     ${sec('工作履历',S.jobs.length?`<p class="cs">${[...new Set(S.jobs)].join(' → ')}</p>`:'')}
@@ -3900,7 +3919,7 @@ function pixArt(key,size){
 }
 
 /* ================= 物品清单 ================= */
-const ITEM_SPR={phone:'phone',console:'console',pc:'pc',piano:'piano',books:'books',dog:'dog',shoes:'shoes',bag:'bag',gymcard:'gymcard',watch:'watch',trip:'trip',yacht:'yacht',jet:'jet',tablet:'tablet',earph:'earph',cam:'cam',guitar:'guitar',cat:'cat',ebike:'ebike',jewel:'jewel',coat:'coat',smart:'smart',massage:'massage',tea:'tea',fish:'fish',art:'art',rv:'rv'};
+const ITEM_SPR={laptop:'laptop',phone:'phone',console:'console',pc:'pc',piano:'piano',books:'books',dog:'dog',shoes:'shoes',bag:'bag',gymcard:'gymcard',watch:'watch',trip:'trip',yacht:'yacht',jet:'jet',tablet:'tablet',earph:'earph',cam:'cam',guitar:'guitar',cat:'cat',ebike:'ebike',jewel:'jewel',coat:'coat',smart:'smart',massage:'massage',tea:'tea',fish:'fish',art:'art',rv:'rv'};
 const WISH_SPR={'一套乐高':'lego','遥控赛车':'car','去迪士尼玩一天':'ticket','一只小仓鼠':'hamster','一辆山地自行车':'bike','一部智能手机':'phone','限量版球鞋':'shoes','偶像演唱会门票':'ticket','一把吉他':'guitar','一台游戏电脑':'pc','一台轻薄笔记本':'laptop','毕业旅行去日本':'trip','一台单反相机':'cam','养一只猫':'cat','一辆小电驴':'ebike','一个名牌包':'bag','一块好表':'watch','全套露营装备':'tent','一枚求婚钻戒':'ring','一套婚纱照':'photo','带全家出国玩一趟':'trip','一台按摩椅':'massage','一套好茶具':'tea','专业钓鱼装备':'fish','一幅名家字画':'art','回老家翻修祖屋':'h_old','一套顶级音响':'speaker','带孙辈去旅游':'trip','拍一张全家福':'photo','自费出版一本回忆录':'book','回出生的地方看看':'ticket'};
 const WISH_CAR={'人生第一辆车':['大众朗逸','丰田卡罗拉','比亚迪秦'],'一辆豪车':['奔驰 S 级','宝马 7 系','保时捷卡宴'],'一辆房车':['房车']};
 function addInv(o){if(!S.inv)S.inv=[];S.inv.push(Object.assign({age:S.age},o))}
@@ -3985,6 +4004,168 @@ function audInit(){
   let once=false;document.addEventListener('pointerdown',()=>{if(once)return;once=true;if(AUD.bgm)bgmSet(true)},{capture:true});
   document.addEventListener('visibilitychange',()=>{if(!AUD.ctx)return;if(document.hidden)AUD.ctx.suspend().catch(()=>{});else if(AUD.bgm)AUD.ctx.resume().catch(()=>{})});
 }
+
+/* ================= 行动图标与场景贴图 ================= */
+Object.assign(SPR,{
+ball:['............','............','...oooooo...','..okoooooo..','.ookooooooo.','.ookkkkkkoo.','.ooookooooo.','.ooookooooo.','..ooookooo..','...oooooo...','............','............'],
+scale:['............','............','.....kk.....','...kkkkkk...','..kkkkkkkk..','..kkwwkkkk..','..kkkkkkkk..','..kkkkkkkk..','...kkkkkk...','............','............','............'],
+pill:['............','............','............','..rrrrwwww..','.rrrrrrwwww.','.rrrrrrwwww.','.rrrrrrwwww.','..rrrrwwww..','............','............','............','............'],
+mirror:['............','....cccc....','...ctttt c..','..cttwwttc..','..cttwtttc..','..cttttttc..','..cttttttc..','...cttttc...','....cccc....','.....cc.....','....cccc....','............'],
+heart:['............','............','..pp...pp...','.pppp.pppp..','.ppppppppp..','.ppppppppp..','..ppppppp...','...ppppp....','....ppp.....','.....p......','............','............'],
+bed:['............','............','............','.kk.........','.kk.........','.kkwwwwwwww.','.kkbbbbbbbb.','.kkbbbbbbbb.','.kkkkkkkkkk.','.kk......kk.','............','............'],
+brief:['............','............','....nnnn....','...n....n...','.nnnnnnnnnn.','.nuuuuuuuun.','.nuuuccuuun.','.nuuuuuuuun.','.nuuuuuuuun.','.nnnnnnnnnn.','............','............'],
+resume:['............','..wwwwwwww..','..wkkkkkkw..','..wwwwwwww..','..wkkkkwww..','..wwwwwwww..','..wkkkkkkw..','..wwwwwwww..','..wkkkkkkw..','..wwwwwwww..','............','............'],
+building:['............','...ssssss...','...sbbsbbs..','...ssssss...','...sbbsbbs..','...ssssss...','...sbbsbbs..','...ssssss...','...sbbsbbs..','...ssssss...','...sssnns...','............'],
+clock:['............','....kkkk....','...kwwwwk...','..kwwkwwwk..','.kwwwkwwwwk.','.kwwwkkkwwk.','.kwwwwwwwwk.','.kwwwwwwwwk.','..kwwwwwwk..','...kwwwwk...','....kkkk....','............'],
+wine:['............','...vvvvvv...','...vvvvvv...','...vvvvvv...','....vvvv....','.....ww.....','.....ww.....','.....ww.....','.....ww.....','...wwwwww...','............','............'],
+coins:['............','............','..cccc......','.cyyyyc.....','.cyccyc.cc..','.cyyyycyyc..','..ccccyccyc.','.....cyyyyc.','......cccc..','............','............','............'],
+seal:['............','....rrrr....','...rrrrrr...','...rrrrrr...','....rrrr....','.....rr.....','....rrrr....','..rrrrrrrr..','.rrrrrrrrrr.','.rrrrrrrrrr.','............','............'],
+cap:['............','............','.kkkkkkkkkk.','..kkkkkkkk..','...kkkkkkc..','..kkkkkkkkc.','...k....k.c.','...k....k...','...kkkkkk...','............','............','............'],
+rocket:['............','.....rr.....','....rrrr....','....rwwr....','....rrrr....','....rrrr....','...rrrrrr...','..rrrrrrrr..','..r.oooo.r..','....oooo....','.....oo.....','............'],
+door:['............','..nnnnnnnn..','..nuuuuuun..','..nuuuuuun..','..nuuuuuun..','..nuuuuccn..','..nuuuuuun..','..nuuuuuun..','..nuuuuuun..','..nuuuuuun..','..nnnnnnnn..','............'],
+cart:['............','.k..........','.kkkkkkkkk..','..kwwwwwwk..','..kwwwwwwk..','..kwwwwwwk..','...kkkkkk...','............','...k....k...','...kk..kk...','............','............'],
+star:['............','.....cc.....','.....cc.....','....cccc....','.cccccccccc.','..cccccccc..','...cccccc...','...cccccc...','..ccc..ccc..','..c......c..','............','............'],
+envelope:['............','............','..rrrrrrrr..','..rrrrrrrr..','..rrrccrrr..','..rrrccrrr..','..rrrrrrrr..','..rrrrrrrr..','..rrrrrrrr..','..rrrrrrrr..','............','............'],
+crystal:['............','............','....tttt....','...twwttt...','..twwtttt t.','..ttttttqt..','..tttttqqt..','...tttqqt...','....tttt....','...nnnnnn...','..nnnnnnnn..','............'],
+scroll:['............','..hhhhhhhh..','.hhkkkkkkhh.','..hhhhhhhh..','..hkkkkkkh..','..hhhhhhhh..','..hkkkkkkh..','..hhhhhhhh..','..hkkkkhhh..','.hhhhhhhhhh.','..hhhhhhhh..','............'],
+chart:['............','..........g.','.........gg.','.......gg.g.','......g.....','.....g......','..r.g.......','.r.rg.......','r...........','kkkkkkkkkkkk','............','............'],
+hands:['............','............','............','.ll......ll.','.lll....lll.','..llllllll..','..llllllll..','...llllll...','...ll..ll...','............','............','............'],
+table:['............','............','..nnnnnnnn..','.nnnnnnnnnn.','.nnnnnnnnnn.','..n......n..','..n.wwww.n..','..n.wwww.n..','..n......n..','............','............','............'],
+stream:['............','....kkkk....','...kwwwwk...','...kwrwwk...','...kwrrwk...','...kwrrrk...','...kwrrwk...','...kwrwwk...','...kwwwwk...','...kkwwkk...','....kkkk....','............'],
+money:['............','....nn......','...nnnn.....','..nnnnnn....','.nnnnnnnn...','.nncccnnn...','.nnc.cnnn...','.nncccnnn...','.nnnnnnnn...','..nnnnnn....','............','............'],
+xmark:['............','............','..rr....rr..','..rrr..rrr..','...rrrrrr...','....rrrr....','....rrrr....','...rrrrrr...','..rrr..rrr..','..rr....rr..','............','............'],
+master:['............','....kkkk....','...kkkkkk...','...llllll...','...lkllkl...','...llllll...','...wwwwww...','..wwwwwwww..','.xxxxxxxxxx.','.xxxccxxxxx.','.xxxxxxxxxx.','............'],
+hospital:['............','..wwwwwwww..','..wwwrrwww..','..wwrrrrww..','..wwwrrwww..','..wwwwwwww..','..wbbwwbbw..','..wbbwwbbw..','..wwwwwwww..','..wwwwnnww..','..wwwwnnww..','............'],
+school:['............','.....r......','.....rr.....','.....r......','.hhhhhhhhhh.','.hbbhbbhbbh.','.hhhhhhhhhh.','.hbbhbbhbbh.','.hhhhhhhhhh.','.hhhhnnhhhh.','.hhhhnnhhhh.','............'],
+office:['............','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..iiiccii i.','............'],
+wedding:['............','....pppp....','...pwppwp...','..pppppppp..','..pppppppp..','...pppppp...','....pppp....','.....pp.....','..cc....cc..','.c..c..c..c.','..cc....cc..','............'],
+baby:['............','............','....llll....','...llllll...','...lkllkl...','...llllll...','..pppppppp..','.pppppppppp.','.pppppppppp.','..pppppppp..','............','............'],
+gavel:['............','.....nnn....','....nnnnn...','...nnnnnn...','....nnnnn...','.....nnn.n..','........nn..','.......nn...','......nn....','.....nn.....','.kkkkkk.....','............'],
+plane:['............','.........t..','........tt..','.......ttt..','..tttttttt..','.tttttttttt.','..tttttttt..','.......ttt..','........tt..','.........t..','............','............'],
+grave:['............','....ssss....','...ssssss...','..ssssssss..','..sskkkkss..','..ssssssss..','..sskkkkss..','..ssssssss..','..ssssssss..','.gggggggggg.','gggggggggggg','............'],
+family:['............','.kk.....kk..','.ll..k..ll..','.ll..l..ll..','.bb..l..rr..','.bb..g..rr..','.bb..g..rr..','............','............','............','............','............'],
+gift:['............','....cc.cc...','.....ccc....','.rrrrrrrrrr.','.rrrrccrrrr.','.rrrrrrrrrr.','..rrrccrrr..','..rrrccrrr..','..rrrccrrr..','..rrrrrrrr..','............','............'],
+dice:['............','..kkkkkkkk..','.kwwwwwwwwk.','.kwkwwwwkwk.','.kwwwwwwwwk.','.kwwwwkwwwk.','.kwwwwwwwwk.','.kwkwwwwkwk.','.kwwwwwwwwk.','..kkkkkkkk..','............','............'],
+badge:['............','....cccc....','...cyyyyc...','..cyyccyyc..','..cycccc yc.','..cyyccyyc..','...cyyyyc...','....cccc....','...r....r...','..rr....rr..','............','............'],
+});
+const AICON={study:'book',play:'ball',hobby:'guitar',hobbyGig:'coins',body:'scale',gym:'gymcard',cure:'pill',beauty:'mirror',therapy:'heart',relax:'bed',travel:'trip',
+ work:'brief',jobhunt:'resume',famBiz:'building',ot:'clock',party:'wine',side:'money',stream:'stream',kaogong:'seal',kaoyan:'cap',startup:'rocket',coStep:'door',coSell:'money',coClose:'xmark',quit:'door',
+ shop:'cart',wish:'star',rentHome:'h_whole',moveOwn:'h_std',paAsk:'envelope',buyCar:'car',fortune:'crystal',will:'scroll',research:'chart',invest:'chart',lottery:'ticket',uniLife:'cap',reunion:'table',sbSettle:'hands',buyHouse:'h_std'};
+const SCENE=[[/算命|大师|运势/,'master'],[/医院|生病|住院|体检|手术|癌|病/,'hospital'],[/高考|中考|小学|大学|考研|读博|保研|专业|学业|竞赛|实习|考证|学生会|社团|联谊|毕业/,'school'],[/结婚|求婚|婚礼|订婚|婚姻|离婚/,'wedding'],[/出生|孩子|取名|怀孕|生娃|改名/,'baby'],[/买房|房子|租房|搬|住哪|房东|拆迁/,'h_std'],[/买车|提车|车/,'car'],
+ [/官司|法院|律师|警察|判|被查|诈骗/,'gavel'],[/旅行|出国|移民|留学|交换|签证/,'plane'],[/股|基金|投资|理财|行情|比特/,'chart'],[/应酬|聚会|酒|同学/,'wine'],[/去世|遗产|遗嘱|继承|葬/,'grave'],[/父母|家族|兄弟|姐妹|孙|全家|亲戚/,'family'],[/工作|offer|跳槽|升职|公司|创业|辞职|面试|岗位|单位|老板/,'office'],[/相亲|恋爱|表白|约会|对象|分手|感情/,'heart'],[/红包|要钱|借钱|给钱|存款|债/,'money'],[/彩票|赌|博/,'dice'],[/心愿|圆梦|买|商城/,'gift']];
+function sceneFor(title,note){const s=(title||'')+(note||'');for(const [re,k] of SCENE)if(re.test(s))return k;return 'dice'}
+
+/* ================= 商城 ================= */
+const ICAT={laptop:'数码',phone:'数码',tablet:'数码',pc:'数码',console:'数码',earph:'数码',cam:'数码',smart:'数码',books:'成长',piano:'成长',guitar:'成长',gymcard:'成长',tea:'生活',massage:'生活',fish:'生活',dog:'宠物',cat:'宠物',shoes:'时尚',bag:'时尚',coat:'时尚',jewel:'时尚',watch:'时尚',ebike:'出行',trip:'出行',rv:'出行',yacht:'奢侈',jet:'奢侈',art:'奢侈'};
+const CATS=['全部','心愿','数码','时尚','生活','成长','宠物','出行','奢侈'];
+const fxText=d=>Object.entries(d||{}).map(([k,v])=>`${{happy:'快乐',int:'智力',app:'颜值',str:'体质',hp:'健康'}[k]||k}${v>0?'+':''}${v}`).join(' ');
+function openMall(){
+  invMigrate();const canP=S.parents.some(p=>p.alive)&&S.pcash>0,w=wishOf();let cat=S.mallCat||'全部';
+  return new Promise(res=>{
+    const render=()=>{
+      const list=ITEMS.filter(x=>S.age>=x.min&&(cat==='全部'||ICAT[x.id]===cat));
+      const wishCard=w&&(cat==='全部'||cat==='心愿')?`<div class="mitem wishi"><span class="mspr">${pixArt(WISH_SPR[w.n]||(w.car?'car':'gift'),44)}</span><div class="mi"><b>${esc(w.n)}<i class="mtag">心愿</i></b><span>${fmtW(w.p)} · 惦记 ${S.age-S.wish.since} 年 · 圆梦快乐 +${2+(w.d.happy||0)}${w.d&&Object.keys(w.d).filter(k=>k!=='happy').length?' · '+fxText(Object.fromEntries(Object.entries(w.d).filter(([k])=>k!=='happy'))):''}</span></div><div class="minis"><button class="mini" data-m="wish">圆梦</button></div></div>`:'';
+      openSheet(`<div class="sh-top"><button class="backbtn" id="shBack">‹ 返回</button><p class="sk">商城</p></div><div class="lifehead">${pixArt('cart',48)}<div><h3>商城</h3><p class="note">买东西会进物品清单；没有心愿时可以把看中的东西“许愿”，攒钱圆梦的快乐翻倍。</p></div></div>${moneyLine()}
+        <div class="mtabs">${CATS.map(c=>`<button class="mtab" data-c="${c}" aria-pressed="${c===cat}">${c}</button>`).join('')}</div>
+        <div class="mlist">${wishCard}${cat==='心愿'&&!w?'<p class="paper empty">现在没有心愿。到了某个年纪会自然冒出来，也可以在下面的商品上点“许愿”。</p>':''}${cat==='心愿'?'':list.map(x=>{const own=(S.items||{})[x.id];const can=S.cash>=x.p,par=canP&&S.pcash>=x.p*3;
+          return `<div class="mitem${own?' own':''}"><span class="mspr">${pixArt(ITEM_SPR[x.id]||'phone',44)}</span><div class="mi"><b>${x.n}${own?'<i class="mtag">已拥有</i>':''}</b><span>${fmtW(x.p)} · ${ICAT[x.id]||''}${fxText(x.d)?' · '+fxText(x.d):''}${['bag','watch','shoes'].includes(x.id)?' · 打扮+':''}</span></div><div class="minis">${own?'':`<button class="mini" data-m="buy" data-id="${x.id}" ${can?'':'disabled'}>买</button>${par?`<button class="mini" data-m="par" data-id="${x.id}">父母买</button>`:''}${!w&&!own?`<button class="mini" data-m="wishit" data-id="${x.id}">许愿</button>`:''}`}</div></div>`}).join('')}</div>`);
+      $('#shBack').onclick=()=>{closeSheet();res(null)};ov.onclick=e=>{if(e.target===ov){closeSheet();res(null)}};escFn=()=>{closeSheet();res(null)};
+      sheet.querySelectorAll('.mtab').forEach(b=>b.onclick=()=>{cat=b.dataset.c;S.mallCat=cat;render()});
+      sheet.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const it=ITEMS.find(x=>x.id===b.dataset.id);closeSheet();res({m:b.dataset.m,it})});
+    };
+    render();
+    if(auto){const pick1=ITEMS.filter(x=>S.age>=x.min&&!(S.items||{})[x.id]&&S.cash>=x.p*3);setTimeout(()=>{closeSheet();res(pick1.length?{m:'buy',it:pick(pick1)}:null)},SPD.hold[speed])}
+  });
+}
+async function buyItem(it,payer){
+  if(payer==='par'){if(S.age>=12&&R()<(S.pcash>it.p*20?.1:.35)){S.parents.forEach(x=>x.rel=clamp(x.rel-3,0,100));log(`你想让父母买${it.n}，被拒绝了。`);return}
+    S.pcash=r1(S.pcash-it.p);if(S.age>=18)S.parents.forEach(x=>x.rel=clamp(x.rel-2,0,100))}
+  if(!S.items)S.items={};S.items[it.id]=1;addInv({id:it.id,n:it.n,p:it.p,spr:ITEM_SPR[it.id]||'phone',src:payer==='par'?'父母买的':'购买'});sfx('coin');
+  const w=wishOf();let wishHit=false;if(w&&w.item===it.id){wishHit=true;S.wishDone=(S.wishDone||[]).concat(w.n);S.wish=null}
+  if(payer==='par')log(`父母给你买了${it.n}：${it.t}。`+apply(it.d));else log(`你${it.t}。`+apply({...it.d,cash:-it.p}));
+  if(wishHit){log(`心愿达成：<b>${it.n}</b>。${pick(['念叨了这么久，终于到手了。','你抱着它看了半天。'])}`+apply({happy:2+(hasP('spend')?1:0)}),'gold');sfx('good')}
+  if(S.body)S.st.app=appBreak().total;
+}
+
+/* ================= 学历履历 ================= */
+function eduPush(t){S.eduLog=(S.eduLog||[]).concat([{a:S.age,t}])}
+function eduLine(){
+  const parts=[S.edu];if(S.school&&S.eduRank>=2)parts.push(S.school);if(S.major&&MAJ[S.major])parts.push(MAJ[S.major].n);
+  const tags=[];if(S.flags.baoyan)tags.push('保研');if(S.flags.haigui)tags.push('海归');if(S.flags.compAward)tags.push('竞赛国奖');if(S.flags.cadre)tags.push('学生会');if(inSchool())tags.push(`学业 ${acad()}`);
+  return parts.join(' · ')+(tags.length?` <small class="quiet">${tags.join('·')}</small>`:'');
+}
+
+/* ================= 人生剧本 ================= */
+const SCRIPTS={
+ rise:{n:'寒门逆袭',trend:'前低后高',w:s=>s.st.money<=3?30:2,poem:['草屋寒灯夜读书','十年磨剑无人知','一朝风起扶摇上','归来仍是少年时'],
+  plot:[{a:[14,16],run:async()=>{const c=await choose('家里供不起了','父母说家里实在拿不出钱，让你出去打工。班主任却说愿意替你垫学费。',[{label:'接受老师资助，继续读',sub:'学业 +10，欠下一份情',k:'s'},{label:'辍学打工，先养家',sub:'拿到钱，但学业停了',k:'w'}],0);
+     if(c.k==='s'){S.acad=clamp((S.acad||40)+10,0,100);addFriend(mkMentor(MENTORS[1]),'班主任');log('班主任垫了学费，你发誓不能辜负。'+apply({int:1}))}else{S.stage='idle';S.edu=S.age>=15?'初中':'小学';S.eduRank=0;S.pending=null;log('你辍学跟老乡去了工地。'+apply({cash:3,happy:-2}),'bad')}}},
+   {a:[26,32],run:async()=>{const r=await wheel('人生的转机','一个老同学找你合伙，说有个“只有你能干”的机会。',[{label:'抓住了',w:45,g:2,d:'从此换了一条赛道。'},{label:'擦肩而过',w:35,g:-1,d:'你犹豫了，机会给了别人。'},{label:'原来是坑',w:20,g:-2,d:'赔进去两年积蓄。'}]);
+     if(r.g===2){S.flags.huntBonus=1;S.netw+=3;S.cash=r1(S.cash+ri(20,60));log('转机：'+r.d+apply({happy:2}),'gold')}else if(r.g===-1)log('转机：'+r.d+apply({happy:-1}));else log('转机：'+r.d+apply({cash:-r1(Math.max(5,S.cash*.3)),happy:-2}),'bad')}},
+   {a:[42,48],run:async()=>{if(net(S)>=300){honor(10,`${S.name}衣锦还乡`);log('你开着车回了老家，村口的老人说：“这孩子出息了。”'+apply({happy:3}),'gold')}else log('同龄人都回乡盖了房，你还在城里租房，心里不是滋味。'+apply({happy:-1}))}}],
+  end:s=>net(s)>=800||s.eduRank>=6||(s.fame||0)>=120,endT:'逆袭成功：从寒门走到了别人仰望的位置'},
+ fall:{n:'富贵浮云',trend:'高开低走，看能否守住',w:s=>s.st.money>=8?40:0,poem:['生在朱门锦绣堆','少年不识愁滋味','忽闻一夜风雨急','方知富贵如浮云'],
+  plot:[{a:[18,22],run:async()=>{const c=await choose('纨绔的诱惑','狐朋狗友拉你去澳门“玩两把”，说输了算他们的。',[{label:'去',sub:'快乐 +3，可能上瘾',k:'y'},{label:'不去，去上课',sub:'学业 +5',k:'n'}],1);
+     if(c.k==='y'){S.flags.gambler=1;log('你在澳门输了一百万，回来谁也没说。'+apply({cash:-Math.min(100,Math.max(0,S.pcash*.1)),happy:3}),'bad');S.pcash=r1(S.pcash-Math.min(100,S.pcash*.1))}else{S.acad=clamp((S.acad||40)+5,0,100);log('你没去，朋友说你变了。'+apply({happy:-1}))}}},
+   {a:[30,38],run:async()=>{const loss=r1(S.pcash*.6);S.pcash=r1(S.pcash-loss);if(S.famBiz)S.famBiz.val=Math.round(S.famBiz.val*.3);if(S.co&&S.co.fam)S.co.val=Math.round(S.co.val*.3);log(`家族生意出了大问题，父母的身家一夜缩水 ${fmtW(loss)}。`+apply({happy:-3}),'bad')}},
+   {a:[48,55],run:async()=>{if(net(S)>=S.birthNet*.8){honor(12,`${S.name}守住了家业`);log('风雨过后，家业还在你手里。'+apply({happy:3}),'gold')}else log('曾经的家业只剩回忆，你学会了自己过日子。'+apply({happy:1}))}}],
+  end:s=>net(s)>=(s.birthNet||1000)*.8,endT:'守住家业：没有败光祖上的钱'},
+ late:{n:'大器晚成',trend:'前半生蹉跎，后半生开花',w:s=>s.luck&&s.luck.seq.slice(3,6).filter(x=>x.t==='good').length>=2?30:6,poem:['少年蹉跎事事空','半生奔走雨和风','莫道桑榆天已晚','晚来花开别样红'],
+  plot:[{a:[28,34],run:async()=>{if(S.job&&S.job.kind!=='boss'){S.job.salary=r1(S.job.salary*.8);capSal();log('公司重组，你被降薪调岗，同期的人都升了。'+apply({happy:-2}),'bad')}else log('同龄人纷纷买房结婚，你还在原地打转。'+apply({happy:-1}))}},
+   {a:[42,48],run:async()=>{const c=await choose('迟来的机会','一位老领导记得你的本事，邀你牵头一个大项目，或者投钱支持你自己干。',[{label:'接下大项目',sub:'升职积累大涨，年薪 +40%',k:'p',dis:!S.job||S.job.kind==='boss'},{label:'拿着投资创业',sub:'启动资金有人出',k:'b',dis:!!S.co},{label:'算了，稳一点',k:'n'}],S.job?0:1);
+     if(c.k==='p'){S.job.salary=r1(S.job.salary*1.4);capSal();S.job.promo=(S.job.promo||0)+4;log('你接下了大项目，一年后大家都知道了你的名字。'+apply({happy:3}),'gold')}else if(c.k==='b'){S.cash=r1(S.cash+60);S.flags.biz=1;log('老领导投了 60 万支持你创业。'+apply({cash:0}),'gold');const r=await startup(true);if(r==='cancel')log('你最后没下决心。')}else log('你谢绝了，日子照旧。')}},
+   {a:[58,64],run:async()=>{if(net(S)>=300||(S.fame||0)>=80){honor(10,`${S.name}大器晚成`);log('六十岁这年，你终于活成了年轻时想成为的人。'+apply({happy:4}),'gold')}else log('六十岁了，你想：也许这一生就这样了。'+apply({happy:-1}))}}],
+  end:s=>s.age>=58&&(net(s)>=300||(s.fame||0)>=80),endT:'大器晚成：晚年活出了自己'},
+ plain:{n:'平凡之路',trend:'平平淡淡，细水长流',w:s=>20,poem:['不求闻达不求名','一茶一饭一家灯','人间烟火寻常事','也是千金换不成'],
+  plot:[{a:[24,28],run:async()=>{log(pick(['你在楼下面馆吃到一碗特别好吃的面，开心了一整天。','周末你一个人去江边坐了一下午。','你养的绿萝开了花。'])+apply({happy:2}))}},
+   {a:[38,44],run:async()=>{const c=await choose('平凡的岔路','一个老同学劝你辞职去创业，说“人这辈子总得搏一次”。',[{label:'搏一次',k:'y',dis:!!S.co},{label:'我喜欢现在的生活',sub:'快乐 +2',k:'n'}],1);if(c.k==='y'){const r=await startup(true);if(r==='cancel')log('想了想，还是算了。')}else log('你说：“我挺好的。”'+apply({happy:2}))}},
+   {a:[65,72],run:async()=>{const n=kidsAlive().length+gkAll().length;if(n>=3)log('过年时一屋子人，孩子们闹成一团，你坐在角落笑。'+apply({happy:3}),'gold');else log('过年就你们两口子，倒也清净。'+apply({happy:1}))}}],
+  end:s=>s.hist.length>40&&s.hist.reduce((a,p)=>a+p.h,0)/s.hist.length>=6&&(s.everMarried||s.kids.length),endT:'平凡之路：一辈子快快乐乐，有家有爱'},
+ genius:{n:'天才的代价',trend:'早慧，容易燃烧过度',w:s=>s.st.int>=8?35:0,poem:['七岁能诗惊四座','十五折桂少年名','世人只道天才好','谁见灯下独自行'],
+  plot:[{a:[13,16],run:async()=>{S.acad=clamp((S.acad||40)+15,0,100);S.flags.compAward=1;honor(5,`${S.name}少年成名`);log('你在全国竞赛拿了金牌，上了本地报纸。'+apply({happy:2,int:1}),'gold')}},
+   {a:[26,32],run:async()=>{const c=await choose('燃烧','你已经连续三年每天只睡五小时。',[{label:'再冲一把',sub:'成就↑，健康和快乐大降',k:'y'},{label:'停下来喘口气',sub:'放弃眼前的机会',k:'n'}],0);
+     if(c.k==='y'){if(S.job)S.job.promo=(S.job.promo||0)+4;honor(6,null);addCond&&addCond('depress');log('你冲上去了，也垮了下来。'+apply({hp:-15,happy:-4}),'bad')}else log('你去海边住了三个月。'+apply({happy:2,hp:5}))}},
+   {a:[40,46],run:async()=>{if((S.fame||0)>=100||S.eduRank>=7){honor(15,`${S.name}成为一代名家`);log('四十岁这年，你被称为“这一代最出色的人之一”。'+apply({happy:3}),'gold')}else log('曾经的天才少年，如今泯然众人，你倒也释然了。'+apply({happy:1}))}}],
+  end:s=>(s.fame||0)>=150,endT:'天才兑现：名留青史'},
+ love:{n:'桃花劫',trend:'感情起伏，考验人心',w:s=>s.st.app>=7?30:3,poem:['桃花树下初相见','一见倾心误终身','几度春风几度雨','回头才识眼前人'],
+  plot:[{a:[19,24],run:async()=>{if(!S.partner&&!S.flags.solo){S.partner=mkPartner(R()<.3);S.partner.love=60;log(`你同时被两个人追求，最后选了${S.partner.name}。`+apply({happy:2}),'ms')}else if(S.partner){S.partner.love=clamp(S.partner.love-15,0,100);log('有人在追你，${S.partner.name}察觉了，很不安。'.replace('${S.partner.name}',S.partner.name))}}},
+   {a:[30,36],run:async()=>{if(!S.partner)return;const c=await choose('旧情难忘','初恋突然联系你，说“这些年一直没忘记你”。',[{label:'见一面',sub:'感情大降，可能出轨',k:'y'},{label:'拉黑',sub:'感情 +10',k:'n'}],1);
+     if(c.k==='y'){S.partner.love=clamp(S.partner.love-30,0,100);S.flags.fault=1;log('你去见了，回来后看谁都不对劲。'+apply({happy:-2}),'bad')}else{S.partner.love=clamp(S.partner.love+10,0,100);log('你拉黑了，把手机递给了伴侣看。'+apply({happy:1}))}}},
+   {a:[48,55],run:async()=>{if(married()&&S.partner.love>=70){log(`半辈子过去，${S.partner.name}还在你身边，你牵着${TA()==='他'?'她':'他'}的手去了年轻时约会的地方。`+apply({happy:4}),'gold')}else log('年轻时的桃花都散了，你一个人喝了杯酒。'+apply({happy:-1}))}}],
+  end:s=>s.partner&&s.partner.married&&s.partner.love>=70,endT:'修成正果：历尽桃花，守住了对的人'},
+ prodigal:{n:'浪子回头',trend:'年少荒唐，中年回头',w:s=>(s.pers||[]).includes('bold')||(s.pers||[]).includes('hot')?30:4,poem:['少年轻狂走天涯','不知家中父母牵','一朝梦醒回首望','浪子回头金不换'],
+  plot:[{a:[16,19],run:async()=>{const c=await choose('混社会','街上的“大哥”说跟着他吃香喝辣。',[{label:'跟着混',sub:'来钱快，但沾上污点',k:'y'},{label:'回家',k:'n'}],1);
+     if(c.k==='y'){S.dirty=(S.dirty||0)+3;S.cash=r1(S.cash+5);S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel-15,0,100)});log('你跟着混了两年，兜里有钱了，父母见你就叹气。'+apply({happy:1}),'bad')}else log('你回家了，大哥后来进去了。'+apply({happy:1}))}},
+   {a:[28,33],run:async()=>{if(S.dirty>0){const r=await wheel('悬崖边','警察找上门，问你知不知道当年的事。',[{label:'只做了证人',w:50,g:1,d:'你交代了一切，没被追究。'},{label:'拘留半年',w:35,g:-1,d:'你在里面想了很多。'},{label:'判了两年',w:15,g:-2,d:'你进去了。'}]);
+       S.dirty=0;if(r.g===-2){goJail(2);log('悬崖边：'+r.d,'bad')}else if(r.g===-1){log('悬崖边：'+r.d+apply({happy:-3,hp:-3}),'bad');S.flags.exCon=1}else log('悬崖边：'+r.d+apply({happy:1}))}else log('老同学进去了，你庆幸当年回了头。'+apply({happy:1}))}},
+   {a:[38,45],run:async()=>{if(!S.jail&&S.cash>0){S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel+25,0,100)});honor(6,`${S.name}浪子回头`);log('你带着礼物回家，父母抱着你哭了。'+apply({happy:4}),'gold')}}}],
+  end:s=>s.age>=40&&!s.jail&&net(s)>0&&!(s.dirty>0),endT:'浪子回头：中年以后清清白白'},
+ abroad:{n:'远走他乡',trend:'漂泊半生，终要归根',w:s=>s.st.money>=5?18:6,poem:['一纸机票别故园','他乡月色照无眠','千山万水走遍后','最忆家门一盏灯'],
+  plot:[{a:[20,25],run:async()=>{if(isOv(S.city))return;const c=await choose('远方的邀请','一个出国的机会摆在面前：留学或工作签证已经办好，只差你点头。',[{label:'走',sub:'去海外闯荡',k:'y'},{label:'留下',k:'n'}],0);
+     if(c.k==='y'){const t=pick(OVS);if(S.job)S.job=null;S.stage=S.stage==='uni'?'uni':'idle';S.city=t;S.cityChosen=true;S.flags.abroadEver=1;log(`你一个人提着箱子去了${cn(t)}。`+apply({happy:1}),'ms')}else log('你留下了，偶尔会想：如果当初走了呢？')}},
+   {a:[33,40],run:async()=>{if(isOv(S.city)){S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel-8,0,100)});log('视频里父母老了很多，你隔着屏幕说不出话。'+apply({happy:-2}))}else log('老同学从国外回来，说那边也不过如此。'+apply({happy:1}))}},
+   {a:[58,66],run:async()=>{if(isOv(S.city)){const c=await choose('落叶归根','年纪大了，要不要回国养老？',[{label:'回去',k:'y'},{label:'留在这里',k:'n'}],0);if(c.k==='y'){S.city='home';S.flags.haigui=1;log('你回到了出生的小镇，一切都变了，又好像没变。'+apply({happy:3}),'gold')}else log('你决定留在第二故乡。'+apply({happy:1}))}}}],
+  end:s=>s.flags.abroadEver&&(s.city==='home'||s.flags.pr),endT:'他乡故乡：走过世界，有了归处'},
+};
+function pickScript(){const ws=Object.entries(SCRIPTS).map(([k,v])=>({k,w:v.w(S)})).filter(x=>x.w>0);return pickW(ws).k}
+function scriptInit(){S.script=pickScript();S.scriptHit=[];S.birthNet=Math.max(1,r1(S.pcash+(S.phome?S.phome.value:0)));const sc=SCRIPTS[S.script];
+  log(`<span class="poem">${sc.poem.join('，')}。</span><br><span class="quiet">命书四句，暗示这一生的走势（${sc.trend}）。</span>`,'gold')}
+async function scriptTick(){
+  if(!S.script||!SCRIPTS[S.script])return;const sc=SCRIPTS[S.script];
+  for(let i=0;i<sc.plot.length;i++){const p=sc.plot[i];if(S.scriptHit.includes(i))continue;if(S.age<p.a[0])continue;
+    if(S.age>=p.a[1]||R()<.3){S.scriptHit.push(i);log(`<b>剧本转折 ${i+1}/${sc.plot.length}</b>`,'dim');await p.run();break}}
+}
+function scriptLine(){if(!S.script)return '';const sc=SCRIPTS[S.script];return `${sc.n}（${sc.trend}）· 转折 ${S.scriptHit.length}/${sc.plot.length}${sc.end(S)?' · 已达成':''}`}
+
+/* ================= 本局挑战 ================= */
+const CHAL=[
+ {id:'house30',n:'30 岁前买房',c:s=>s.age<=30&&s.houses.some(h=>!h.rent)},{id:'kids2',n:'养大两个孩子',c:s=>kidsAlive().filter(k=>k.age>=18).length>=2},{id:'trip5',n:'去 5 个地方旅行',c:s=>(s.trips||0)>=5},
+ {id:'cash100',n:'存款过 100 万',c:s=>s.cash>=100},{id:'cash1000',n:'存款过 1000 万',c:s=>s.cash>=1000},{id:'best3',n:'交 3 个挚友',c:s=>friends().filter(f=>f.best).length>=3},{id:'edu6',n:'考上 985/211',c:s=>s.uniRank>=6},
+ {id:'hobby5',n:'爱好练到 5 级',c:s=>(s.hobbyLv||0)>=5},{id:'wish3',n:'圆 3 个梦',c:s=>(s.wishDone||[]).length>=3},{id:'famrel',n:'父母感情 90 以上',c:s=>s.parents.some(p=>p.alive&&p.rel>=90)},{id:'age80',n:'活到 80 岁',c:s=>s.age>=80},
+ {id:'boss',n:'当上老板',c:s=>!!s.co},{id:'abroad',n:'出国看看',c:s=>!!s.flags.abroadEver},{id:'car',n:'拥有一辆车',c:s=>s.cars.length>0},{id:'love80',n:'感情 80 以上结婚',c:s=>s.partner&&s.partner.married&&s.partner.love>=80},{id:'honor5',n:'家族荣誉 5 项',c:s=>s.honors.length>=5}];
+function chalInit(){S.chal=[...CHAL].sort(()=>R()-.5).slice(0,3).map(c=>c.id);S.chalDone=[]}
+function chalTick(){if(!S.chal)return;for(const id of S.chal){if(S.chalDone.includes(id))continue;const c=CHAL.find(x=>x.id===id);if(c&&c.c(S)){S.chalDone.push(id);log(`本局挑战完成：<b>${c.n}</b>（评分 +5，家族底蕴 +1）`,'gold');sfx('good');const r=loadRec();r.legacy=(r.legacy||0)+1;saveRec(r)}}}
+function chalHTML(){if(!S.chal)return '';return `<div class="paper chal"><span class="lab">本局挑战</span><div class="chips">${S.chal.map(id=>{const c=CHAL.find(x=>x.id===id);return `<span class="chip ${S.chalDone.includes(id)?'ach':'lock'}">${S.chalDone.includes(id)?'✓ ':''}${c?c.n:id}</span>`}).join('')}</div></div>`}
 
 /* ================= 控制 ================= */
 $('#bNext').onclick=()=>nextYear();
