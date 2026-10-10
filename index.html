@@ -499,6 +499,17 @@ h1{white-space:nowrap}
 .luckbar .lk-child{border-style:dashed}.luckbar .lk-child b{color:var(--muted)}
 .ch.npc{cursor:pointer;border-radius:10px}.ch.npc:hover b{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
 .pname{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.profbtn{font-size:12px;padding:3px 10px;font-weight:700}
+/* 物品清单与住宅 */
+.invgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.inv{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;text-align:center}
+.inv .ispr{display:inline-flex;padding:6px;border-radius:12px;background:var(--bg)}
+.inv b{font-size:13px;font-weight:900;line-height:1.2}.inv span:last-child{font-size:11.5px;color:var(--muted)}
+.homecard{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.homecard .hspr{display:inline-flex;padding:6px;border-radius:14px;background:var(--bg);flex:none}
+.homecard .hinfo{display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px}.homecard .hinfo b{font-size:16px;font-weight:900}
+.row .rspr{display:inline-flex;flex:none;margin-right:10px;padding:3px;border-radius:9px;background:var(--bg);align-self:center}
+.skin.aud{padding:5px 8px;font-size:12px;opacity:.75;white-space:nowrap}.skin.aud.on{opacity:1;border-color:var(--gold);color:var(--gold-d)}
+@media (max-width:560px){.skin.aud{padding:4px 6px;font-size:11px}.top{flex-wrap:wrap}.hdr-r{flex-wrap:wrap;justify-content:flex-end}}
 </style>
 
 <div class="app" id="app">
@@ -702,7 +713,7 @@ function newState(o){
     partner:null,everMarried:false,exes:0,kids:[],
     houses:[],cars:[],pidx,en:0,enMax:0,yr:{},
     flags:{},once:{},pending:null,family:'',cause:'',alive:true,log:[],hist:[],dynasty:[],q:[],
-    fame:0,honors:[],motto:null,sibList:[],mkt:null,port:{},cost:{},friends:[],inlaws:null,loans:[]},o);
+    fame:0,honors:[],motto:null,sibList:[],mkt:null,port:{},cost:{},friends:[],inlaws:null,loans:[],inv:[]},o);
 }
 const kidsAlive=()=>S.kids.filter(k=>k.alive);
 const married=()=>!!(S.partner&&S.partner.married);
@@ -748,13 +759,13 @@ function wheel(title,note,segs,opt={}){
           ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(s.label.slice(0,6),cc-12,0);ctx.restore()}})}
     let rot=0,spun=false,fin=false;draw(0);
     const btn=$('#spin');
-    const go=()=>{if(spun)return;spun=true;btn.disabled=true;btn.textContent='转动中…';
+    const go=()=>{if(spun)return;spun=true;btn.disabled=true;btn.textContent='转动中…';sfx('spin');
       const s=pickW(segs),idx=segs.indexOf(s),mid=(s.a0+s.p*(.2+.6*R()))*T,target=(RM?0:6)*T+((-mid%T)+T)%T;
       const dur=RM?150:(auto?SPD.spin[speed]:3000),st=performance.now();
       const raf=f=>document.hidden?setTimeout(()=>f(performance.now()),50):requestAnimationFrame(f);
       const step=t=>{const k=Math.min(1,(t-st)/dur);rot=target*(1-Math.pow(1-k,4));draw(rot);if(k<1)raf(step);else done(s,idx)};
       raf(step)};
-    const done=(s,idx)=>{sheet.querySelector(`.legend li[data-i="${idx}"]`)?.classList.add('hit');
+    const done=(s,idx)=>{sfx(s.g>0?'good':s.g<0?'bad':'flat');sheet.querySelector(`.legend li[data-i="${idx}"]`)?.classList.add('hit');
       $('#wr').innerHTML=`<div class="res"><span class="sk">结果</span><b>${s.label}</b>${s.d?`<p>${s.d}</p>`:''}</div>`;
       btn.disabled=false;btn.textContent='继续';btn.onclick=()=>{if(fin)return;fin=true;closeSheet();res(s)};
       if(auto)setTimeout(()=>btn.onclick(),SPD.hold[speed])};
@@ -1116,10 +1127,10 @@ const ITEMS=[
  {id:'piano',n:'钢琴',p:3,min:6,d:{int:1,happy:1},t:'家里添了一架钢琴，你开始练琴'},
  {id:'books',n:'一整套名著',p:.2,min:8,d:{int:1},t:'买了一整套名著，看得入迷'},
  {id:'dog',n:'养一只狗',p:.5,min:8,d:{happy:2},t:'养了一只狗，每天陪你散步'},
- {id:'shoes',n:'限量球鞋',p:.5,min:14,d:{app:1,happy:1},t:'抢到一双限量球鞋'},
- {id:'bag',n:'名牌包',p:3,min:16,d:{app:1,happy:1},t:'背上了名牌包，走路都带风'},
+ {id:'shoes',n:'限量球鞋',p:.5,min:14,d:{happy:1},t:'抢到一双限量球鞋，打扮分 +'},
+ {id:'bag',n:'名牌包',p:3,min:16,d:{happy:1},t:'背上了名牌包，走路都带风，打扮分 +'},
  {id:'gymcard',n:'私教年卡',p:2,min:16,d:{str:1,hp:5},t:'办了私教年卡，练出了马甲线'},
- {id:'watch',n:'名表',p:10,min:18,d:{app:1,happy:1},t:'手腕上多了一块名表'},
+ {id:'watch',n:'名表',p:10,min:18,d:{happy:1},t:'手腕上多了一块名表，打扮分 +'},
  {id:'trip',n:'环球旅行',p:30,min:18,d:{happy:3},t:'花了半年环游世界'},
  {id:'yacht',n:'游艇',p:800,min:25,d:{happy:3,app:1},t:'买了一艘游艇，周末出海'},
  {id:'jet',n:'私人飞机',p:3000,min:30,d:{happy:4},t:'买了一架私人飞机，从此不用排队安检'}];
@@ -1132,7 +1143,7 @@ A('shop',{n:'买东西',h:'手机、电脑、名牌、游艇…',en:0,show:()=>S
     const p=await choose(`谁来付 ${fmtW(it.p)}？`,'',[{label:'自己付',k:'me',dis:S.cash<it.p},{label:'让父母买单',sub:S.age<18?'撒个娇':'感情会小降',k:'par'},{label:'算了',k:0}],1);
     if(!p.k)return false;payer=p.k;
     if(payer==='par'&&S.age>=12&&R()<(S.pcash>it.p*20?.1:.35)){S.parents.forEach(x=>x.rel=clamp(x.rel-3,0,100));log(`你想让父母买${it.n}，被拒绝了。`);return}}
-  if(!S.items)S.items={};S.items[it.id]=1;
+  if(!S.items)S.items={};S.items[it.id]=1;addInv({id:it.id,n:it.n,p:it.p,spr:ITEM_SPR[it.id]||'phone',src:payer==='par'?'父母买的':'购买'});sfx('coin');if(S.body)S.st.app=appBreak().total;
   if(payer==='par'){S.pcash=r1(S.pcash-it.p);if(S.age>=18)S.parents.forEach(x=>x.rel=clamp(x.rel-2,0,100));log(`父母给你买了${it.n}：${it.t}。`+apply(it.d))}
   else log(`你${it.t}。`+apply({...it.d,cash:-it.p}))}});
 /* 伴侣 */
@@ -1174,7 +1185,7 @@ A('sellHouse',{n:'卖掉',en:0,show:t=>!!S.houses[+t],run:async t=>{const h=S.ho
 A('rentHouse',{n:t=>S.houses[+t]&&S.houses[+t].rent?'收回自住':'出租',en:0,show:t=>!!S.houses[+t],run:async t=>{const h=S.houses[+t];h.rent=!h.rent;log(h.rent?`你把${cn(h.city)}的房子租了出去。`:`你收回了${cn(h.city)}的房子。`)}});
 A('buyCar',{n:'买车',en:0,once:1,show:()=>isAdult(),ok:()=>S.cash>=5,run:async()=>{
   const c=await choose('买什么车？',`你的存款 ${fmtW(S.cash)}。每年保养约为车价的 1%，车每年贬值 15%。`,CARS.map(x=>({label:x.n,sub:fmtW(x.p),k:x,dis:S.cash<x.p})).concat([{label:'算了',k:0}]),0);
-  if(!c.k)return false;S.cars.push({n:c.k.n,p:c.k.p,v:c.k.p});if(c.k.p>=100)S.flags.lux=1;
+  if(!c.k)return false;S.cars.push({n:c.k.n,p:c.k.p,v:c.k.p,spr:c.k.p>=50?'luxcar':'car'});if(c.k.p>=100)S.flags.lux=1;sfx('coin');
   log(`你提了一辆${c.k.n}。`+apply({cash:-c.k.p,happy:c.k.p>=50?2:1}),'ms')}});
 A('sellCar',{n:'卖掉',en:0,show:t=>!!S.cars[+t],run:async t=>{const x=S.cars.splice(+t,1)[0];log(`你把${x.n}卖了。`+apply({cash:r1(x.v*.9)}))}});
 A('coInvest',{n:'给公司注资',en:0,once:1,show:()=>S.co&&!S.co.listed&&!S.co.retired,ok:()=>S.cash>=10,run:async()=>{
@@ -1201,9 +1212,9 @@ function panelAct(){
     ${S.wish&&wishOf()?`<div class="paper wishcard"><span class="lab">心愿</span><b>${S.wish.n}</b><span>${fmtW(wishOf().p)} · 已惦记 ${S.age-S.wish.since} 年${S.age-S.wish.since>=3?' · 再不圆就要淡了':''}</span></div>`:''}
     ${S.age>=3?bodyCardHTML():''}
     ${g('校园',['uniLife'])}
-    ${g('自我',['study','play','hobby','body','gym','cure','beauty','therapy','relax','travel'])}
+    ${g('自我',['study','play','hobby','hobbyGig','body','gym','cure','beauty','therapy','relax','travel'])}
     ${g('事业',['work','jobhunt','famBiz','ot','party','side','stream','kaogong','kaoyan','startup','coStep','coSell','coClose','quit'])}
-    ${g('生活',['wish','shop','rentHome','paAsk','buyCar','fortune','will'])}
+    ${g('生活',['wish','shop','rentHome','moveOwn','paAsk','buyCar','fortune','will'])}
     ${g('理财',['research','invest','lottery'])}
     ${fam.length?`<p class="tip">${fam.join('、')}在“家庭”页；买房卖房在“资产”页；买卖股票在“股市”页；搬家和出国在“地图”页；族谱和兄弟姐妹在“家族”页。</p>`:''}`;
 }
@@ -1239,8 +1250,8 @@ function panelFam(){
 function kidDesc(k){
   const a=[];if(k.pot&&k.age>=2)a.push(`${Math.round(k.pot*hfrac(k.age,k.gender))}cm`);
   if(k.age<3)a.push('还在吃奶');else if(k.stage==='baby')a.push('上幼儿园');
-  if(k.stage==='school')a.push(`${['乡村','普通','重点','国际'][k.schoolQ]}${k.age<12?'小学':'初中'}`);
-  if(k.stage==='hs')a.push({key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中'}[k.hs]+(k.abroad?' · 准备出国':''));
+  if(k.stage==='school')a.push(k.ov?`${cn(k.city)}当地${k.age<12?'小学':'中学'}`:`${['乡村','普通','重点','国际'][k.schoolQ]}${k.age<12?'小学':'初中'}`);
+  if(k.stage==='hs')a.push({key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中',ov:'当地高中'}[k.hs]+(k.abroad?' · 准备出国':''));
   if(k.stage==='uni')a.push(`${k.school}在读`);
   if(k.stage==='work')a.push(`${k.edu}${k.school?'·'+k.school:''} · ${k.job?(k.org||KORG[k.job]||'')+'·'+k.job:'待业'}${k.salary?` · ${fmtPay(k.salary)}`:''} · ${cn(k.city)}`);
   if(k.intl&&k.stage==='baby')a.push('国际幼儿园');
@@ -1254,14 +1265,15 @@ function panelAsset(){
   let h=`<dl class="paper sum"><div><dt>现金</dt><dd class="${S.cash<0?'dn':''}">${fmtW(S.cash)}</dd></div><div><dt>房产净值</dt><dd>${fmtW(he)}</dd></div><div><dt>房贷余额</dt><dd>${fmtW(loan)}</dd></div>
     <div><dt>车</dt><dd>${fmtW(cv)}</dd></div><div><dt>公司股权</dt><dd>${fmtW(eq(S))}</dd></div><div><dt>净资产</dt><dd>${fmtW(net(S))}</dd></div></dl>`;
   if(isAdult())h+=`<p class="tip">${yearBudget()}</p>`;
+  h+=`<div class="grp"><h3 class="sec2">住宅</h3>${homeCardHTML()}${S.age>=18?`<p class="tip">规则：在父母所在城市、没结婚时可以住父母家；去别的城市要租房或买房；上学住宿舍；在当前城市有自己的房子就住自己家。</p>`:''}</div>`;
   h+=`<div class="grp"><h3 class="sec2">房产<small>${cn(S.city)}标准三居室约 ${fmtW(CITIES[S.city].price*S.pidx[S.city])}</small></h3>`;
-  h+=S.houses.length?`<div class="paper rows">${S.houses.map((x,i)=>`<div class="row"><div class="ri"><b>${cn(x.city)} · ${HTYPE[x.type].n}${x.rent?' · 出租中':x.city===S.city?' · 自住':''}</b>
+  const liveH=S.houses.find(x=>x.city===S.city&&!x.rent);h+=S.houses.length?`<div class="paper rows">${S.houses.map((x,i)=>`<div class="row"><span class="rspr">${pixArt('h_'+x.type,36)}</span><div class="ri"><b>${cn(x.city)} · ${HTYPE[x.type].n}${x.rent?' · 出租中':x===liveH?' · 自住':' · 空置'}</b>
     <span>市值 ${fmtW(hv(x))}${x.loan>0?` · 房贷还剩 ${fmtW(x.loan)}（${x.yrs} 年，每年 ${fmtW(x.pay)}）`:' · 无贷款'}${x.rent?` · 租金每年 ${fmtW(hv(x)*.02)}`:''}</span></div>
     <div class="minis">${miniBtn('rentHouse',i)}${miniBtn('sellHouse',i)}</div></div>`).join('')}</div>`:'<p class="paper empty">名下还没有房子。</p>';
   h+=`<div class="acts">${actBtn('buyHouse')}</div></div>`;
-  h+=`<div class="grp"><h3 class="sec2">汽车</h3>${S.cars.length?`<div class="paper rows">${S.cars.map((x,i)=>`<div class="row"><div class="ri"><b>${x.n}</b><span>买入 ${fmtW(x.p)} · 现值 ${fmtW(x.v)}</span></div><div class="minis">${miniBtn('sellCar',i)}</div></div>`).join('')}</div>`:'<p class="paper empty">还没有车。</p>'}<div class="acts">${actBtn('buyCar')}</div></div>`;
-  const own=ITEMS.filter(x=>(S.items||{})[x.id]);
-  h+=`<div class="grp"><h3 class="sec2">物品<small>${own.length} 件</small></h3>${own.length?`<div class="chips">${own.map(x=>`<span class="chip">${x.n}</span>`).join('')}</div>`:'<p class="paper empty">还没买过什么。</p>'}<div class="acts">${actBtn('shop')}</div></div>`;
+  h+=`<div class="grp"><h3 class="sec2">汽车</h3>${S.cars.length?`<div class="paper rows">${S.cars.map((x,i)=>`<div class="row"><span class="rspr">${pixArt(x.spr||(x.p>=50?'luxcar':'car'),36)}</span><div class="ri"><b>${x.n}${x.spouse?'（伴侣的）':''}</b><span>买入 ${fmtW(x.p)} · 现值 ${fmtW(x.v)}</span></div><div class="minis">${miniBtn('sellCar',i)}</div></div>`).join('')}</div>`:'<p class="paper empty">还没有车。</p>'}<div class="acts">${actBtn('buyCar')}</div></div>`;
+  invMigrate();
+  h+=`<div class="grp"><h3 class="sec2">物品<small>${S.inv.length} 件</small></h3>${invHTML()}<div class="acts">${actBtn('shop')}${actBtn('wish')}</div></div>`;
   if(S.co||S.coLog.length)h+=`<div class="grp"><h3 class="sec2">公司</h3>${S.co?`<div class="paper card"><div class="ch"><b>${S.co.name}</b><span>${TRACK[S.co.t].n} · ${STAGE[S.co.stage]}</span></div>
     <dl class="kv"><div><dt>估值</dt><dd>${fmtW(S.co.val)}</dd></div><div><dt>你的持股</dt><dd>${S.co.share}%</dd></div><div><dt>你的年薪</dt><dd>${fmtW(S.job?S.job.salary:0)}</dd></div><div><dt>账上余粮</dt><dd>${S.co.runway?S.co.runway+' 年':'紧张'}</dd></div></dl>
     <div class="minis">${miniBtn('coInvest')}${miniBtn('coStep')}${miniBtn('coSell')}${miniBtn('coClose')}</div></div>`:''}${S.coLog.length?`<p class="tip">创业经历：${S.coLog.join('、')}</p>`:''}</div>`;
@@ -1339,17 +1351,21 @@ function mkKid(o){const tr=pick(KTRAIT)[0];return Object.assign({name:'',gender:
 function kidYear(k){
   if(!k.alive)return;
   k.age++;
+  if(k.age<18&&!k.away&&k.stage!=='uni')k.city=S.city;k.ov=k.age<18&&!k.away&&isOv(S.city)?1:0;
   if(['school','hs','uni'].includes(k.stage)){
     const p=.12+.05*k.schoolQ+(k.comp?.12:0)+(k.tutor?.2:0)+(S.flags.parenting?.1:0)+(motto('study')?.08:0)+(k.trait==='学霸'?.15:0);if(R()<p)k.int=Math.min(20,k.int+1)}
   kidHealthTick(k);if(!k.alive)return;kidAcadTick(k);
-  if(k.age===6){k.stage='school';k.schoolQ=k.intl?3:clamp((C().t===1?2:C().t===2?1:0)+(ownsIn(S.city)&&C().t<=2?1:0),0,2);k.edu='小学';log(`${k.name}上小学了。`)}
+  if(k.age===6&&k.ov){k.stage='school';k.schoolQ=2;k.edu='小学';log(`${k.name}在${cn(S.city)}上了当地小学。`)}
+  else if(k.age===6){k.stage='school';k.schoolQ=k.intl?3:clamp((C().t===1?2:C().t===2?1:0)+(ownsIn(S.city)&&C().t<=2?1:0),0,2);k.edu='小学';log(`${k.name}上小学了。`)}
   if(k.age===12&&k.stage==='school')k.edu='初中';
-  if(k.age===15&&k.stage==='school'){
+  if(k.age===15&&k.stage==='school'&&k.ov){k.hs='ov';k.stage='hs';k.edu='高中';log(`${k.name}升入${cn(S.city)}的当地高中。`)}
+  else if(k.age===15&&k.stage==='school'){
     const zk=(k.acad||40)+k.int*2+(k.hsWish==='key'?4:0)+ri(-10,10);k.zk=zk;
     k.hs=k.intl?'intl':k.hsWish==='voc'?'voc':zk>=72?'key':(zk<38&&k.hsWish!=='key')?'voc':'normal';k.stage='hs';k.edu='高中';
-    log(`${k.name}中考结束${k.intl?'':`（年级第 ${k.rank||'?'} 名）`}，去了${{key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中'}[k.hs]}。`)}
+    log(`${k.name}中考结束${k.intl?'':`（年级第 ${k.rank||'?'} 名）`}，去了${{key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中',ov:'当地高中'}[k.hs]}。`)}
   if((k.age===18||k.age===k.reAge)&&k.stage==='hs'&&!(k.gk&&k.gk.age===k.age)){
-    if(k.abroad||k.hs==='intl'){k.abroad=1;k.uniRank=R()<.1+k.int*.05?6:4;k.uniCity=pick(OVS);k.school=`${CITIES[k.uniCity].cc}${ovSchool(k.uniCity,k.uniRank)}`;k.studyType='bachelor'}
+    if(k.hs==='ov'||(k.ov&&k.hs!=='voc')){k.abroad=1;const ac=k.acad||40;k.uniRank=ac>=80&&R()<.5+k.int*.03?6:ac>=40?4:2;k.uniCity=isOv(k.city)?k.city:pick(OVS);k.school=`${CITIES[k.uniCity].cc}${ovSchool(k.uniCity,k.uniRank)}`;k.studyType='bachelor';k.local=1}
+    else if(k.abroad||k.hs==='intl'){k.abroad=1;k.uniRank=R()<.1+k.int*.05?6:4;k.uniCity=pick(OVS);k.school=`${CITIES[k.uniCity].cc}${ovSchool(k.uniCity,k.uniRank)}`;k.studyType='bachelor'}
     else if(k.hs==='voc'){k.uniRank=2;k.school=`${cshort(S.city)}职业技术学院`;k.studyType='college';k.uniCity=S.city}
     else{const sc=clamp(Math.round(230+(k.acad||40)*3.3+k.int*7+(k.hs==='key'?25:0)+(k.tutorN||0)*4+ri(-45,35)),150,740);
       k.gk={sc,age:k.age};if(silent){kidGkAuto(k);return}log(`${k.name}${k.retook?'复读后再次':''}参加高考，考了 <b>${sc}</b> 分。`,'ms');S.q.push({t:'gk',k});return}
@@ -1537,7 +1553,7 @@ async function nextYear(){
     if(auto)await autoPlay();
     await resolveYear();
     S.hist.push({a:S.age,n:net(S),h:S.st.happy});
-    S.age++;newYearLog();S.yr={};
+    S.age++;newYearLog();S.yr={};sfx('year');
     await milestones();
     if(S.alive){if(!S.jail){jobEvent();cityEvent();await randomEvent()}quoteTick();deathCheck()}
     if(S.alive)setEnergy();
@@ -2149,7 +2165,7 @@ function startHeir(ki,mode,pickT){
   tal.forEach(t=>S.flags[t.id]=1);
   S.luck=mkLuck();S.pers=mkPers(o.pers);S.tgen={};S.goal=null;S.trips=0;S.tripList=[];S.rentCity=null;const awake=[];
   inh.forEach(t=>{const n=((o.tgen||{})[t.id]||1)+1;S.tgen[t.id]=n;if(n===3)awake.push(t)});
-  S.cash=r1(k.cash+share-inKind);
+  S.cash=r1(k.cash+share-inKind);S.inv=ren?[]:(o.inv||[]).filter(x=>x.p>=1).map(x=>({...x,src:'继承',age:null}));
   if(k.house)S.houses.push({city:k.city,type:'small',m:.7,loan:0,pay:0,yrs:0,rent:false});
   S.parents=[{role:prevGender==='男'?'父亲':'母亲',name:prevName,age:o.age,hp:0,rel:k.rel,alive:false,note:'已故'}];
   if(partner&&partner.married)S.parents.push({role:prevGender==='男'?'母亲':'父亲',name:partner.name,age:partner.age,hp:60,rel:k.rel,alive:true});
@@ -2367,7 +2383,7 @@ function getSave(){
 function loadGame(d){
   setHome(d.home);const st=d.state;
   S=Object.assign(newState({}),st);
-  S.talents=(st.talents||[]).map(id=>TALENTS.find(t=>t.id===id)).filter(Boolean);
+  S.talents=(st.talents||[]).map(id=>TALENTS.find(t=>t.id===id)).filter(Boolean);invMigrate();
   if(S.job&&!S.job.track&&S.job.kind!=='retired')attachLadder(S.job);
   if(!S.body){S.body=mkBody(S.gender);S.body.h=Math.round(S.body.pot*hfrac(S.age,S.gender));S.face=S.st.app}
   if(!S.mkt)S.mkt=mktInit();if(!S.port)S.port={};if(!S.cost)S.cost={};if(!S.honors)S.honors=[];if(!S.sibList)S.sibList=[];
@@ -2747,7 +2763,7 @@ const HOBBY={
 A('hobby',{n:()=>S.hobby?`投入${HOBBY[S.hobby].n}`:'培养爱好',h:()=>S.hobby?`爱好等级 ${S.hobbyLv||0}`:'选一个一生的爱好',en:1,show:()=>S.age>=10,run:async()=>{
   if(!S.hobby){const c=await choose('培养什么爱好？','爱好会带来快乐，也可能改变人生。',Object.entries(HOBBY).map(([k,v])=>({label:v.n,sub:v.d,k})).concat([{label:'算了',k:0}]),ri(0,9));
     if(!c.k)return false;S.hobby=c.k;S.hobbyLv=1;log(`你爱上了${HOBBY[c.k].n}。`+apply({happy:1}));return}
-  const h=HOBBY[S.hobby];S.hobbyLv=(S.hobbyLv||1)+(S.flags.wuxing?2:1);
+  const h=HOBBY[S.hobby];S.hobbyLv=(S.hobbyLv||1)+(S.flags.wuxing?2:1);if(S.job&&S.job.org==='自由职业'){S.job.salary=r1(S.job.salary*1.08);capSal()}
   const fx={happy:1};if(S.hobby==='fit'||S.hobby==='ball'){fx.str=R()<.5?1:0;fx.hp=4}if(S.hobby==='read')fx.int=R()<.6?1:0;if(S.hobby==='photo'||S.hobby==='paint')fx.app=R()<.3?1:0;if(S.hobby==='travel')fx.cash=-r1(C().cost*.3);
   if(S.hobby==='cook'){S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel+4,0,100)});if(S.partner)S.partner.love=clamp(S.partner.love+4,0,100)}
   log(pick(h.ev)+apply(fx));
@@ -3413,10 +3429,10 @@ function kidExtra(k){const a=[];
   if(k.ills&&k.ills.length)a.push(`病史：${[...new Set(k.ills)].join('、')}`);
   const c=kidCost(k);if(c>0)a.push(`每年开销 ${fmtW(c)}（${KCOST_LBL(k)}）`);
   return a.length?`<br><span class="quiet">${a.join(' · ')}</span>`:''}
-const KCOST_LBL=k=>k.stage==='uni'?(k.abroad?'留学':'大学'):k.age<3?'奶粉尿布':k.age<6?(k.intl?'国际幼儿园':'幼儿园'):k.age<18?(k.intl?'国际学校':k.schoolQ>=2?'重点学校+兴趣班':'学费+生活'):'';
+const KCOST_LBL=k=>k.stage==='uni'?(k.abroad?(k.local?'当地大学':'留学'):'大学'):k.ov?'海外上学':k.age<3?'奶粉尿布':k.age<6?(k.intl?'国际幼儿园':'幼儿园'):k.age<18?(k.intl?'国际学校':k.schoolQ>=2?'重点学校+兴趣班':'学费+生活'):'';
 function kidCost(k){
   if(k.away)return 0;const f=C().t===4?3:C().t===1?2.5:C().t===2?1.6:1;
-  if(k.stage==='uni')return k.abroad?(OVU[k.uniCity]?OVU[k.uniCity].tu:45):(k.studyType==='college'?2:3);
+  if(k.stage==='uni')return k.abroad?r1((OVU[k.uniCity]?OVU[k.uniCity].tu:45)*(k.local&&S.flags.pr?.35:1)):(k.studyType==='college'?2:3);
   if(k.age>=18)return 0;
   const base=k.age<3?1.5:k.age<6?1.8:k.age<15?2:2.6;
   return r1(base*f+(k.intl?(k.age<6?12:22):0)+(k.schoolQ>=2&&!k.intl&&k.age>=6?1:0));
@@ -3464,7 +3480,8 @@ A('wish',{n:()=>S.wish?`圆梦：${S.wish.n}`:'心愿',h:()=>{const w=wishOf();r
   if(!c.k)return false;
   if(c.k==='par'){if(R()<(S.st.money>=6?.85:.5)){S.pcash=r1(S.pcash-w.p);log(`爸妈帮你实现了心愿：${w.n}。`)}else{log(`你求爸妈给你买${w.n}，被拒绝了：“等你长大自己挣。”`+apply({happy:-1}));return}}
   else S.cash=r1(S.cash-w.p);
-  if(w.car)S.cars.push({n:w.n.replace(/^(人生第一辆|一辆)/,''),p:w.p,v:w.p});
+  if(w.car){const cn2=pick(WISH_CAR[w.n]||['车']);S.cars.push({n:cn2,p:w.p,v:w.p,spr:w.n==='一辆房车'?'rv':w.p>=50?'luxcar':'car'});log(`提的是一辆${cn2}。`,'dim')}
+  else if(WISH_SPR[w.n])addInv({id:'wish',n:w.n,p:w.p,spr:WISH_SPR[w.n],src:'心愿'});sfx('good');
   if(w.love&&S.partner)S.partner.love=clamp(S.partner.love+w.love,0,100);
   if(w.fam){kidsAlive().forEach(k=>k.rel=clamp(k.rel+8,0,100));if(S.partner)S.partner.love=clamp(S.partner.love+8,0,100)}
   if(w.fame)honor(w.fame,null);
@@ -3811,13 +3828,162 @@ function openNpc(key){
   else if(kind==='il'){o=S.inlaws;if(!o)return;title=inlawWord();sub=o.label;av=avatarSVG({name:o.fa.name,gender:'男',age:o.fa.age,dead:!o.fa.alive},64);
     body=`<dl class="rgrid">${rowH(S.gender==='男'?'岳父':'公公',`${esc(o.fa.name)} · ${o.fa.alive?o.fa.job+' · '+o.fa.age+' 岁':'已故'}`)}${rowH(S.gender==='男'?'岳母':'婆婆',`${esc(o.mo.name)} · ${o.mo.alive?o.mo.job+' · '+o.mo.age+' 岁':'已故'}`)}${rowH('存款',fmtW(o.cash))}${rowH('住处',esc(o.home))}${rowH(`${spouseWord()}的兄弟姐妹`,o.sibs?`${o.sibs} 人（将来分遗产要分 ${o.sibs+1} 份）`:'没有，独生')}</dl><div class="meters">${relRow('感情',o.rel)}</div>`}
   else if(kind==='kid'){o=S.kids[+i];if(!o)return;title=esc(o.name);sub=`${kidWord(o)} · ${o.age} 岁 · ${o.trait||''}`;av=avatarSVG({name:o.name,gender:o.gender,age:o.age,app:o.app,int:o.int,dead:!o.alive},64);
-    body=`<dl class="rgrid">${rowH('现状',kidDesc(o))}${rowH('学校',o.school||(o.stage==='school'?['乡村','普通','重点','国际'][o.schoolQ]+(o.age<12?'小学':'初中'):o.stage==='hs'?{key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中'}[o.hs]:''))}${rowH('年级排名',o.rank?`第 ${o.rank} / ${o.rankN} 名`:'')}${rowH('中考',o.zk!=null?`${Math.round(o.zk)} 分`:'')}${rowH('高考',o.gk?`${o.gk.sc} 分${o.retook?'（复读）':''}`:'')}${rowH('专业',o.major&&MAJ[o.major]?MAJ[o.major].n:'')}${rowH('工作',o.job?`${o.org||''}·${o.job} · ${fmtPay(o.salary)}`:'')}${rowH('存款',o.cash>=1?fmtW(o.cash):'')}${rowH('配偶',o.spouse?`${o.spouse.name}（${o.spouse.job}）`:o.married?'已婚':'')}${rowH('孩子',o.gkids&&o.gkids.length?o.gkids.map(g=>`${g.name} ${g.age} 岁`).join('、'):'')}${rowH('病史',o.ills&&o.ills.length?[...new Set(o.ills)].join('、'):'')}${rowH('每年开销',kidCost(o)>0?`${fmtW(kidCost(o))}（${KCOST_LBL(o)}）`:'')}${rowH('城市',cn(o.city))}</dl><div class="meters">${meter('智力',o.int,10,'blue')}${meter('颜值',o.app,10,'pink')}${meter('体质',o.str,10,'jade')}${['school','hs'].includes(o.stage)&&o.acad!=null?meter('学业',Math.round(o.acad),100,'jade'):''}${meter('健康',o.hp??90,100,'seal')}${relRow('亲密',o.rel)}</div>`}
+    body=`<dl class="rgrid">${rowH('现状',kidDesc(o))}${rowH('学校',o.school||(o.stage==='school'?(o.ov?cn(o.city)+'当地学校':['乡村','普通','重点','国际'][o.schoolQ]+(o.age<12?'小学':'初中')):o.stage==='hs'?{key:'重点高中',normal:'普通高中',voc:'职高',intl:'国际高中',ov:'当地高中'}[o.hs]:''))}${rowH('年级排名',o.rank?`第 ${o.rank} / ${o.rankN} 名`:'')}${rowH('中考',o.zk!=null?`${Math.round(o.zk)} 分`:'')}${rowH('高考',o.gk?`${o.gk.sc} 分${o.retook?'（复读）':''}`:'')}${rowH('专业',o.major&&MAJ[o.major]?MAJ[o.major].n:'')}${rowH('工作',o.job?`${o.org||''}·${o.job} · ${fmtPay(o.salary)}`:'')}${rowH('存款',o.cash>=1?fmtW(o.cash):'')}${rowH('配偶',o.spouse?`${o.spouse.name}（${o.spouse.job}）`:o.married?'已婚':'')}${rowH('孩子',o.gkids&&o.gkids.length?o.gkids.map(g=>`${g.name} ${g.age} 岁`).join('、'):'')}${rowH('病史',o.ills&&o.ills.length?[...new Set(o.ills)].join('、'):'')}${rowH('每年开销',kidCost(o)>0?`${fmtW(kidCost(o))}（${KCOST_LBL(o)}）`:'')}${rowH('城市',cn(o.city))}</dl><div class="meters">${meter('智力',o.int,10,'blue')}${meter('颜值',o.app,10,'pink')}${meter('体质',o.str,10,'jade')}${['school','hs'].includes(o.stage)&&o.acad!=null?meter('学业',Math.round(o.acad),100,'jade'):''}${meter('健康',o.hp??90,100,'seal')}${relRow('亲密',o.rel)}</div>`}
   else if(kind==='fr'){o=(S.friends||[])[+i];if(!o)return;const m=o.kind==='mentor';title=esc(o.name);sub=`${m?'贵人 · '+o.trait:o.trait+'的朋友'}${o.best?' · 挚友':''} · ${o.age} 岁`;av=avatarSVG({name:o.name,gender:o.gender,age:o.age,kind:m?'boss':'default',dead:!o.alive},64);
     body=`<dl class="rgrid">${rowH('特点',o.trait+(o.td||''))}${rowH('相识',`${o.met} 岁时${o.src?'，'+o.src:''}`)}${rowH('认识了',`${S.age-o.met} 年`)}${rowH('能帮你',m?o.td:'')}${rowH('经历',[o.wed?'你当过对方的伴郎/伴娘':'',o.cof?'一起创过业':'',(S.loans||[]).some(l=>l.from===o.name&&!l.paid)?'你还欠对方钱':''].filter(Boolean).join('、'))}</dl><div class="meters">${relRow('感情',o.rel)}</div><p class="tip">${m?'感情 30 以上可以求帮忙，每求一次情分减 25。':'感情到 75 会成为挚友，之后会有婚礼、借钱、合伙、介绍对象这些事。感情掉到 5 以下会断了联系。'}</p>`}
   else if(kind==='sb'){o=(S.sibList||[])[+i];if(!o)return;title=esc(o.name);sub=o.alive?`${o.gender==='男'?'兄弟':'姐妹'} · ${o.age} 岁`:'已故';av=avatarSVG({name:o.name,gender:o.gender,age:o.age,dead:!o.alive},64);
     body=`<dl class="rgrid">${rowH('工作',o.job?`${o.job}${o.salary?' · '+fmtPay(o.salary):''}`:o.age<22?'还在上学':'')}${rowH('存款',o.cash>=1?fmtW(o.cash):'')}${rowH('遗产纠纷',o.owed>0?`认为你欠 ${fmtW(o.owed)}`:'')}${rowH('关系',o.cut?'已断绝来往':o.rel>=80?'手足情深':o.rel>=40?'普通':'疏远')}</dl>${o.alive?`<div class="meters">${relRow('感情',o.rel)}</div>`:''}<p class="tip">感情 80 以上，他们会在你负债、带娃、照顾老人时搭把手；太低则分遗产时会闹翻。</p>`}
   else return;
   sheetShell(title,sub,av,body);
+}
+
+/* ================= 像素贴图：物品与房子 ================= */
+const PAL={k:'#2B2B2B',w:'#FFFFFF',r:'#D2412F',g:'#2E9B62',b:'#2F6FD6',y:'#E09A12',p:'#DE4F86',v:'#7B5CD6',o:'#E67E22',n:'#8B5A2B',t:'#5DADE2',s:'#BDC3C7',d:'#7F8C8D',l:'#F5CBA7',e:'#58D68D',c:'#F4D03F',m:'#A04000',a:'#F7DC6F',i:'#1B4F72',q:'#C39BD3',h:'#EDE4D3',u:'#9B6B43',x:'#34495E'};
+const SPR={
+phone:['............','....kkkk....','...kwwwwk...','...ktttt k..','...kttttk...','...kttttk...','...kttttk...','...kttttk...','...kwwwwk...','...kkwwkk...','....kkkk....','............'],
+tablet:['............','..kkkkkkkk..','..kwwwwwwk..','..kttttttk..','..kttttttk..','..kttttttk..','..kttttttk..','..kttttttk..','..kwwwwwwk..','..kkkkkkkk..','............','............'],
+console:['............','............','..kkkkkkkk..','.kssssssssk.','.ksrkssskbk.','.kkkkssskkk.','.ksrkssskgk.','.kssssssssk.','..kkkkkkkk..','............','............','............'],
+pc:['............','.kkkkkkkkkk.','.kttttttttk.','.ktwwtttttk.','.kttttttttk.','.kttttttttk.','.kkkkkkkkkk.','.....kk.....','...kkkkkk...','............','..ssssssss..','............'],
+laptop:['............','............','..kkkkkkkk..','..kttttttk..','..ktwtttttk.','..kttttttk..','..kkkkkkkk..','.ssssssssss.','.skkkkkkkks.','.ssssssssss.','............','............'],
+piano:['............','............','.kkkkkkkkkk.','.kkkkkkkkkk.','.kwkwwkwkwk.','.kwkwwkwkwk.','.kwwwwwwwwk.','.kkkkkkkkkk.','.kk......kk.','.kk......kk.','............','............'],
+books:['............','............','..rrr.bbb...','..rrr.bbbgg.','..rrr.bbbgg.','..rrr.bbbgg.','..rrr.bbbgg.','..rrr.bbbgg.','..rrr.bbbgg.','..rrr.bbbgg.','.kkkkkkkkkk.','............'],
+dog:['............','............','..nn.....nn.','..nnnnnnnn..','..nkknnnkn..','..nnnnnnnn..','...nnnnnn...','....nnnn....','....n..n....','....n..n....','............','............'],
+cat:['............','............','..y....y....','..yy..yy....','..yyyyyy....','..ykyyky....','..yyyyyy....','...yyyy..y..','..yyyyyyyy..','..yy..yy....','............','............'],
+hamster:['............','............','............','...oooooo...','..oowooow...','..okooooko..','..oooooooo..','...oowwoo...','...oooooo...','....o..o....','............','............'],
+shoes:['............','............','............','............','.......rr...','......rrrr..','.....rrrrw..','.rrrrrrrrw..','.rwwwwwrrr..','.kkkkkkkkk..','............','............'],
+bag:['............','....nnnn....','...n....n...','...n....n...','.mmmmmmmmmm.','.mmmmmmmmmm.','.mmmmccmmmm.','.mmmmmmmmmm.','.mmmmmmmmmm.','.mmmmmmmmmm.','............','............'],
+coat:['............','....k..k....','...kkkkkk...','..kkkkkkkk..','.kkkkkkkkkk.','.kkkkkkkkkk.','.kk.kkkk.kk.','.kk.kkkk.kk.','....kkkk....','....kkkk....','....kkkk....','............'],
+gymcard:['............','............','............','.kk......kk.','.kkk....kkk.','.kkkkkkkkkk.','.kkkkkkkkkk.','.kkk....kkk.','.kk......kk.','............','............','............'],
+watch:['............','.....ss.....','....ssss....','...sccccs...','..scwwwwcs..','..scwkkwcs..','..scwwkwcs..','..scwwwwcs..','...sccccs...','....ssss....','.....ss.....','............'],
+jewel:['............','............','....pppp....','...pwppwp...','..pppppppp..','..pwpppppp..','...pppppp...','....pppp....','.....pp.....','............','............','............'],
+trip:['............','............','....kkkk....','...k....k...','.nnnnnnnnnn.','.nccnnnnccn.','.nnnnnnnnnn.','.nnnnnnnnnn.','.nnnnnnnnnn.','.nnnnnnnnnn.','..k......k..','............'],
+ticket:['............','............','.cccccccccc.','.cwcccccccc.','.cwccccckkc.','.cwccccckkc.','.cwcccccccc.','.cccccccccc.','............','............','............','............'],
+cam:['............','............','.....kkk....','.kkkkkkkkkk.','.kkkkkkkkkk.','.kkkksskkkk.','.kkksttskkk.','.kkksttskkk.','.kkkksskkkk.','.kkkkkkkkkk.','............','............'],
+earph:['............','....kkkk....','...k....k...','..k......k..','..k......k..','.kk......kk.','.kk......kk.','.kk......kk.','..k......k..','............','............','............'],
+guitar:['............','.........nn.','........nn..','.......nn...','......nn....','....mmmm....','...mmmmmm...','..mmmkkmmm..','..mmmkkmmm..','...mmmmmm...','....mmmm....','............'],
+ebike:['............','............','.......kk...','......k.....','...kkkkk....','..kbbbbbk...','..kbbbbbk...','.kkkkkkkkk..','.k.k...k.k..','..k.....k...','............','............'],
+car:['............','............','............','....kkkk....','...kttttk...','..kkkkkkkk..','.krrrrrrrrk.','.krrrrrrrrk.','.kkkkkkkkkk.','..kk....kk..','............','............'],
+luxcar:['............','............','............','...kkkkkk...','..kttttttk..','.kkkkkkkkkk.','.kxxxxxxxxk.','.kxxccccxxk.','.kkkkkkkkkk.','..kk....kk..','............','............'],
+rv:['............','............','.kkkkkkkk...','.kwwwwwwkk..','.kwttwttkwk.','.kwwwwwwkwk.','.kwwwwwwkkk.','.kkkkkkkkkk.','..kk....kk..','............','............','............'],
+yacht:['............','............','......kk....','.....kwwk...','....kwwwwk..','...kwwwwwwk.','..kkkkkkkkk.','.wwwwwwwwww.','..bbbbbbbb..','.tttttttttt.','............','............'],
+jet:['............','............','..........s.','.........ss.','..ssssssss..','.ssssssssss.','..ssssssss..','.....ss.....','....ss......','............','............','............'],
+tent:['............','............','.....gg.....','....gggg....','...gggggg...','..gggggggg..','.gggg..gggg.','gggg....gggg','............','............','............','............'],
+ring:['............','....cc......','...cccc.....','....cc......','...yyyy.....','..yy..yy....','..y....y....','..y....y....','..yy..yy....','...yyyy.....','............','............'],
+photo:['............','.kkkkkkkkkk.','.kwwwwwwwwk.','.kwttttttwk.','.kwtltlttwk.','.kwtttttt wk','.kwgggggg wk','.kwwwwwwwwk.','.kkkkkkkkkk.','............','............','............'],
+smart:['............','....bbbb....','...b....b...','..b.wwww.b..','....wwww....','....wkkw....','....wwww....','............','..bbbbbbbb..','..b.b..b.b..','............','............'],
+massage:['............','............','....kkkk....','...kvvvvk...','...kvvvvk...','..kkvvvvkk..','..kvvvvvvk..','..kvvvvvvk..','.kkkkkkkkkk.','.kk......kk.','............','............'],
+tea:['............','............','............','...nnnnnn...','..nnnnnnnn.n','..nnnnnnnnnn','..nnnnnnnn.n','...nnnnnn...','....nnnn....','............','............','............'],
+fish:['............','..k.........','...k........','....k.......','.....k......','......k.....','.......k....','.....bbkb...','....bbbbbb..','.....bbbb...','............','............'],
+art:['............','.yyyyyyyyyy.','.ywwwwwwwwy.','.ywtttttt y.','.ywttgttt y.','.ywtggggt y.','.ywgggggg y.','.ywwwwwwwwy.','.yyyyyyyyyy.','............','............','............'],
+speaker:['............','..kkk..kkk..','..kwk..kwk..','..kkk..kkk..','..kkk..kkk..','..ksk..ksk..','..ksk..ksk..','..kkk..kkk..','..kkk..kkk..','..kkk..kkk..','............','............'],
+lego:['............','............','...rr.rr....','..rrrrrrr...','..rrrrrrr...','..bb.bb.....','.bbbbbbb....','.bbbbbbb....','...yy.yy.yy.','..yyyyyyyyy.','..yyyyyyyyy.','............'],
+bike:['............','............','.....kk.....','....k.......','...kkkk.....','..k.k.k.....','.k..k..k....','k.kkkkk.k...','.k.....k....','..k...k.....','............','............'],
+book:['............','............','..kkkkkkkk..','..kwwwwwwk..','..kwkkkkwk..','..kwwwwwwk..','..kwkkkkwk..','..kwwwwwwk..','..kwwwwwwk..','..kkkkkkkk..','............','............'],
+h_small:['............','............','....rrrr....','...rrrrrr...','..rrrrrrrr..','..hhhhhhhh..','..hbbhhbbh..','..hbbhhbbh..','..hhhhhhhh..','..hhhhnnhh..','..hhhhnnhh..','............'],
+h_std:['............','...rrrrrr...','..rrrrrrrr..','.rrrrrrrrrr.','.hhhhhhhhhh.','.hbbhhbbhbh.','.hbbhhbbhbh.','.hhhhhhhhhh.','.hbbhnnhbbh.','.hbbhnnhbbh.','.hhhhnnhhhh.','............'],
+h_big:['............','.sssssssssss','.sbbsbbsbbss','.ssssssssss.','.sbbsbbsbbss','.ssssssssss.','.sbbsbbsbbss','.ssssssssss.','.sbbsbbsbbss','.ssssssssss.','.ssssnnsssss','............'],
+h_villa:['............','.....rr.....','....rrrr....','...rrrrrr...','..rrrrrrrr..','.rrrrrrrrrr.','.wwwwwwwwww.','.wbbwwbbwbbw','.wbbwwbbwbbw','.wwwwnnwwww.','.wwwwnnwwww.','gggggggggggg'],
+h_old:['............','............','...dddddd...','..dddddddd..','.dddddddddd.','.uuuuuuuuuu.','.ubbuuuubbu.','.ubbuuuubbu.','.uuuuuuuuuu.','.uuuunnuuuu.','.uuuunnuuuu.','gggggggggggg'],
+h_village:['............','............','.dddddddddd.','.xxxxxxxxxx.','.xbxbxbxbxx.','.xxxxxxxxxx.','.xbxbxbxbxx.','.xxxxxxxxxx.','.xbxbxbxbxx.','.xxxxxxxxxx.','.xxxxnnxxxx.','............'],
+h_share:['............','............','.ssssssssss.','.sbbsssbbss.','.sbbsssbbss.','.ssssssssss.','.sbbsssbbss.','.sbbsssbbss.','.ssssssssss.','.sbbsssbbss.','.ssssnnssss.','............'],
+h_whole:['............','............','..hhhhhhhh..','..hhhhhhhh..','..hbbhhbbh..','..hbbhhbbh..','..hhhhhhhh..','..hbbhhbbh..','..hbbhhbbh..','..hhhhnnhh..','..hhhhnnhh..','............'],
+h_near:['............','............','.uuuuuuuuuu.','.ubbuubbubbu','.ubbuubbubbu','.uuuuuuuuuu.','.ubbuubbubbu','.ubbuubbubbu','.uuuuuuuuuu.','.ubbuunnubbu','.uuuuunnuuuu','............'],
+h_apt:['............','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..ittittti..','..iiiiiiii..','..iiiiccii..','............'],
+h_dorm:['............','............','.gggggggggg.','.gbbgbbgbbg.','.gggggggggg.','.gbbgbbgbbg.','.gggggggggg.','.gbbgbbgbbg.','.gggggggggg.','.ggggnnggg g','............','............'],
+h_jail:['............','.xxxxxxxxxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xkxkxkxkxx.','.xxxxxxxxxx.','............','............'],
+};
+const SPRC={};
+function pixArt(key,size){
+  size=size||40;const rows=SPR[key]||SPR.phone;
+  if(!SPRC[key]){const px=[];rows.forEach((row,y)=>{[...row].forEach((ch,x)=>{if(PAL[ch])px.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[ch]}"/>`)})});SPRC[key]=px.join('')}
+  return `<svg class="pix spr" viewBox="0 0 12 12" width="${size}" height="${size}" shape-rendering="crispEdges" aria-hidden="true">${SPRC[key]}</svg>`;
+}
+
+/* ================= 物品清单 ================= */
+const ITEM_SPR={phone:'phone',console:'console',pc:'pc',piano:'piano',books:'books',dog:'dog',shoes:'shoes',bag:'bag',gymcard:'gymcard',watch:'watch',trip:'trip',yacht:'yacht',jet:'jet',tablet:'tablet',earph:'earph',cam:'cam',guitar:'guitar',cat:'cat',ebike:'ebike',jewel:'jewel',coat:'coat',smart:'smart',massage:'massage',tea:'tea',fish:'fish',art:'art',rv:'rv'};
+const WISH_SPR={'一套乐高':'lego','遥控赛车':'car','去迪士尼玩一天':'ticket','一只小仓鼠':'hamster','一辆山地自行车':'bike','一部智能手机':'phone','限量版球鞋':'shoes','偶像演唱会门票':'ticket','一把吉他':'guitar','一台游戏电脑':'pc','一台轻薄笔记本':'laptop','毕业旅行去日本':'trip','一台单反相机':'cam','养一只猫':'cat','一辆小电驴':'ebike','一个名牌包':'bag','一块好表':'watch','全套露营装备':'tent','一枚求婚钻戒':'ring','一套婚纱照':'photo','带全家出国玩一趟':'trip','一台按摩椅':'massage','一套好茶具':'tea','专业钓鱼装备':'fish','一幅名家字画':'art','回老家翻修祖屋':'h_old','一套顶级音响':'speaker','带孙辈去旅游':'trip','拍一张全家福':'photo','自费出版一本回忆录':'book','回出生的地方看看':'ticket'};
+const WISH_CAR={'人生第一辆车':['大众朗逸','丰田卡罗拉','比亚迪秦'],'一辆豪车':['奔驰 S 级','宝马 7 系','保时捷卡宴'],'一辆房车':['房车']};
+function addInv(o){if(!S.inv)S.inv=[];S.inv.push(Object.assign({age:S.age},o))}
+function invMigrate(){if(!S.inv){S.inv=[];Object.keys(S.items||{}).forEach(id=>{const it=ITEMS.find(x=>x.id===id);if(it)S.inv.push({id,n:it.n,p:it.p,spr:ITEM_SPR[id]||'phone',src:'购买',age:null})})}}
+function invHTML(){
+  invMigrate();const L=S.inv;
+  if(!L.length)return '<p class="paper empty">还没买过什么。心愿和商店里买的东西都会放在这里。</p>';
+  return `<div class="invgrid">${L.slice().reverse().map(x=>`<div class="paper inv"><span class="ispr">${pixArt(x.spr||'phone',40)}</span><b>${esc(x.n)}</b><span>${fmtW(x.p)}${x.age!=null?` · ${x.age} 岁${x.src?'·'+x.src:''}`:''}</span></div>`).join('')}</div>`;
+}
+
+/* ================= 住宅 ================= */
+function homeStatus(){
+  if(S.jail>0)return {k:'jail',spr:'h_jail',n:'看守所',sub:`服刑中，还剩 ${S.jail} 年`};
+  if(S.stage==='uni'&&!ownsIn(S.city))return {k:'dorm',spr:'h_dorm',n:`${S.school||'学校'}宿舍`,sub:'上学期间住宿舍，不用交房租'};
+  if(ownsIn(S.city)){const h=S.houses.find(x=>x.city===S.city&&!x.rent);return {k:'own',spr:'h_'+(h.type==='old'?'old':h.type),n:`${cn(S.city)} · ${HTYPE[h.type].n}`,sub:h.loan>0?`自己的房子 · 房贷还剩 ${fmtW(h.loan)}，每年还 ${fmtW(h.pay)}`:'自己的房子，没有贷款'}}
+  if(liveWithParents())return {k:'parents',spr:'h_old',n:`${cshort(S.phome.city)} · 父母家`,sub:S.age<18?'还住在家里':'住在父母家，省下房租；结婚后要自己住'};
+  if(!isAdult())return {k:'parents',spr:'h_old',n:'父母家',sub:'还住在家里'};
+  const t=curRent()||'whole';return {k:'rent',spr:'h_'+t,n:`${cn(S.city)} · ${RENT[t].n}`,sub:`租的 · 每年房租 ${fmtW(r1(C().rent*rentM()))}${S.phome&&S.phome.city!==S.city&&S.parents.some(p=>p.alive)?'（父母家在'+cshort(S.phome.city)+'，回去就不用租房）':''}`};
+}
+function homeCardHTML(){
+  const h=homeStatus();
+  return `<div class="paper homecard"><span class="hspr">${pixArt(h.spr,56)}</span><div class="hinfo"><span class="lab">现在住在</span><b>${h.n}</b><span class="quiet">${h.sub}</span></div><div class="minis">${h.k==='rent'?miniBtn('rentHome'):''}${S.houses.some(x=>x.city!==S.city&&!x.rent)?miniBtn('moveOwn'):''}</div></div>`;
+}
+A('moveOwn',{n:'搬去自己的房子住',en:1,show:()=>isAdult()&&!S.jail&&!ownsIn(S.city)&&S.houses.some(x=>x.city!==S.city&&!x.rent),run:async()=>{
+  const hs=S.houses.filter(x=>x.city!==S.city&&!x.rent);
+  const c=await choose('搬去哪套房？','搬城市意味着要辞掉现在的工作。',hs.map(x=>({label:`${cn(x.city)} · ${HTYPE[x.type].n}`,sub:S.job&&!['retired','boss'].includes(S.job.kind)?`要辞掉${S.job.name}`:'',k:x.city})).concat([{label:'算了',k:0}]),0);
+  if(!c.k)return false;await exec('move',c.k);}});
+
+/* ================= 爱好变现 ================= */
+Object.assign(HOBBY.fish,{pro:['钓鱼主播','influencer',12],gig:'接钓具测评'});Object.assign(HOBBY.fit,{pro:['私人教练','small',12],gig:'带人私教'});Object.assign(HOBBY.cook,{pro:['私房菜老板','chef',14],gig:'接私厨上门'});
+Object.assign(HOBBY.read,{pro:['专栏作家','media',10],gig:'写书评稿'});Object.assign(HOBBY.ball,{pro:['篮球教练','small',10],gig:'带青训班'});Object.assign(HOBBY.travel,{pro:['旅行博主','influencer',14],gig:'写游记接广告'});
+HOBBY.photo.gig='接拍写真';HOBBY.game.gig='代练陪玩';HOBBY.music.gig='酒吧驻唱';HOBBY.paint.gig='接约稿';
+A('hobbyGig',{n:()=>S.hobby?`靠${HOBBY[S.hobby].n}赚钱`:'',h:()=>S.hobby?`${HOBBY[S.hobby].gig} · 等级 ${S.hobbyLv||0}`:'',en:1,show:()=>S.hobby&&(S.hobbyLv||0)>=3&&S.age>=16&&!S.jail,run:async()=>{
+  const h=HOBBY[S.hobby],lv=S.hobbyLv||1,base=lv*(.6+(S.netw||0)*.05);
+  const r=await wheel(`${h.gig}`,`爱好等级 ${lv}，等级越高越值钱。`,[{label:'接到大活',w:8+lv*2,g:2,m:3},{label:'稳定接单',w:45,g:1,m:1},{label:'没人找',w:30-lv*2,g:0,m:0},{label:'被赖账',w:12,g:-1,m:-.3}]);
+  const g=r1(base*r.m*(.8+R()*.4));
+  log(`你${h.gig}：${r.label}${g>0?`，赚了 ${fmtW(g)}`:g<0?'，还贴了钱':''}。`+apply({cash:g,happy:r.g>0?1:r.g<0?-1:0}),r.g<0?'bad':'');
+  if(r.g===2&&!S.flags.gigName){S.flags.gigName=1;log(`你在${h.n}圈子里慢慢有了名气。`,'dim');honor(2,null)}
+  if(lv>=5&&h.pro&&!S.co&&!(S.job&&S.job.name===h.pro[0])&&(!h.proAge||(S.age>=h.proAge[0]&&S.age<=h.proAge[1]))&&r.g>=1&&R()<.5){
+    const c=await choose(`全职做${h.pro[0]}？`,`${h.gig}的收入已经不少了。${S.job?`要辞掉${S.job.name}`:'成为自由职业者'}，收入不稳定，但做的是自己喜欢的事。`,[{label:`成为${h.pro[0]}`,k:'y'},{label:'先兼职着',k:'n'}],S.job&&S.job.salary>h.pro[2]*2?1:0);
+    if(c.k==='y'){if(S.job)log(`你辞去了${S.job.name}的工作。`);setJob(h.pro[0],h.pro[1],h.pro[2]*(1+lv*.1),true,'自由职业');S.flags.hobbyPro=1;S.flags['pro'+S.hobby]=1;honor(6,`${S.name}把${h.n}做成了事业`);log('从此你的收入跟着爱好等级走，每年投入爱好都会涨薪。'+apply({happy:2}),'gold')}}}});
+
+/* ================= 音乐与音效（WebAudio 合成，无外部文件） ================= */
+const AUD={ctx:null,bgm:false,sfx:true,timer:null,step:0,gain:null};
+(()=>{try{const p=JSON.parse(localStorage.getItem('life-audio')||'{}');if(typeof p.bgm==='boolean')AUD.bgm=p.bgm;if(typeof p.sfx==='boolean')AUD.sfx=p.sfx}catch(e){}})();
+function audSave(){try{localStorage.setItem('life-audio',JSON.stringify({bgm:AUD.bgm,sfx:AUD.sfx}))}catch(e){}}
+function audCtx(){if(!AUD.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;AUD.ctx=new AC();AUD.gain=AUD.ctx.createGain();AUD.gain.gain.value=.16;AUD.gain.connect(AUD.ctx.destination)}if(AUD.ctx.state==='suspended')AUD.ctx.resume().catch(()=>{});return AUD.ctx}
+function tone(f,t0,dur,type,vol,dest){const c=AUD.ctx;if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t0);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.5,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);o.connect(g);g.connect(dest||AUD.gain);o.start(t0);o.stop(t0+dur+.02)}
+/* 音效 */
+const SFX={
+  click(){const c=audCtx();if(!c)return;tone(880,c.currentTime,.05,'square',.25)},
+  tick(){const c=audCtx();if(!c)return;tone(1400,c.currentTime,.03,'square',.15)},
+  good(){const c=audCtx();if(!c)return;const t=c.currentTime;[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.07,.18,'square',.3))},
+  bad(){const c=audCtx();if(!c)return;const t=c.currentTime;[330,262,196].forEach((f,i)=>tone(f,t+i*.1,.22,'sawtooth',.25))},
+  flat(){const c=audCtx();if(!c)return;tone(440,c.currentTime,.12,'triangle',.3)},
+  year(){const c=audCtx();if(!c)return;const t=c.currentTime;tone(660,t,.08,'triangle',.3);tone(990,t+.09,.12,'triangle',.3)},
+  coin(){const c=audCtx();if(!c)return;const t=c.currentTime;tone(1319,t,.06,'square',.25);tone(1760,t+.06,.12,'square',.25)},
+  spin(){const c=audCtx();if(!c)return;const t=c.currentTime;for(let i=0;i<14;i++)tone(900+i*40,t+i*.06*(1+i*.08),.03,'square',.15)},
+};
+function sfx(k){if(!AUD.sfx||RM)return;try{SFX[k]&&SFX[k]()}catch(e){}}
+/* 背景音乐：五声音阶随机生成的小曲，8 分音符循环 */
+const PENTA=[0,2,4,7,9,12,14,16];
+function bgmLoop(){
+  const c=AUD.ctx;if(!c||!AUD.bgm)return;
+  const bpm=96,beat=60/bpm,t0=c.currentTime+.05,root=AUD.root||(AUD.root=220);
+  const bars=4,notes=[];let last=3;
+  for(let i=0;i<bars*8;i++){if(i%2===0||Math.random()<.5){last=clamp(last+[-2,-1,-1,0,1,1,2][Math.floor(Math.random()*7)],0,PENTA.length-1);notes.push([i,last])}}
+  const dest=AUD.gain;
+  notes.forEach(([i,n])=>tone(root*Math.pow(2,PENTA[n]/12),t0+i*beat/2,beat*.45,'triangle',.5,dest));
+  for(let b=0;b<bars;b++){const chord=[0,7,4,9][b%4];tone(root/2*Math.pow(2,chord/12),t0+b*beat*2,beat*1.6,'sine',.45,dest);tone(root/2*Math.pow(2,(chord+7)/12),t0+b*beat*2+beat,beat*.8,'sine',.3,dest)}
+  for(let i=0;i<bars*8;i+=2)tone(i%8===0?110:80,t0+i*beat/2,.05,'square',.12,dest);
+  AUD.timer=setTimeout(bgmLoop,bars*2*beat*1000-80);
+}
+function bgmSet(on){AUD.bgm=on;audSave();clearTimeout(AUD.timer);AUD.timer=null;if(on){if(audCtx())bgmLoop()}audBtns()}
+function audBtns(){const b=$('#bBgm'),s=$('#bSfx');if(b){b.textContent=(AUD.bgm?'♫ 音乐开':'♫ 音乐关');b.classList.toggle('on',AUD.bgm);b.setAttribute('aria-pressed',AUD.bgm)}if(s){s.textContent=AUD.sfx?'♪ 音效开':'♪ 音效关';s.classList.toggle('on',AUD.sfx);s.setAttribute('aria-pressed',AUD.sfx)}}
+function audInit(){
+  const r=$('#hdr-r')||document.querySelector('.hdr-r');if(!r||$('#bBgm'))return;
+  r.insertAdjacentHTML('afterbegin',`<button class="skin aud" id="bBgm" type="button" aria-pressed="false"></button><button class="skin aud" id="bSfx" type="button" aria-pressed="true"></button>`);
+  $('#bBgm').onclick=()=>{bgmSet(!AUD.bgm);sfx('click')};$('#bSfx').onclick=()=>{AUD.sfx=!AUD.sfx;audSave();audBtns();sfx('click')};audBtns();
+  // 全局按键反馈：所有按钮点击都有轻响；页面被隐藏时暂停音乐
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled||b.id==='bBgm'||b.id==='bSfx')return;sfx(b.classList.contains('opt')||b.id==='bNext'?'tick':'click')},true);
+  let once=false;document.addEventListener('pointerdown',()=>{if(once)return;once=true;if(AUD.bgm)bgmSet(true)},{capture:true});
+  document.addEventListener('visibilitychange',()=>{if(!AUD.ctx)return;if(document.hidden)AUD.ctx.suspend().catch(()=>{});else if(AUD.bgm)AUD.ctx.resume().catch(()=>{})});
 }
 
 /* ================= 控制 ================= */
@@ -3838,7 +4004,7 @@ window.addEventListener('error',e=>{console.error(e.error||e.message);recover()}
 window.addEventListener('unhandledrejection',e=>{console.error(e.reason);recover()});
 function recover(){if(!S)return;busy=false;if(ov.hidden===false&&!sheet.querySelector('#spin,.opt'))closeSheet();try{renderAll()}catch(e){}}
 let busySince=0;setInterval(()=>{if(!S)return;if(busy&&ov.hidden&&!auto){busySince+=5;if(busySince>=20){busySince=0;console.warn('watchdog reset');recover()}}else busySince=0},5000);
-drawTalents();renderSetup();renderWho();initCloud();
+drawTalents();renderSetup();renderWho();initCloud();audInit();
 
 </script>
 
