@@ -686,7 +686,10 @@ const TIERS=[
 
 /* ================= 状态 ================= */
 const SURS=['王','李','张','刘','陈','杨','赵','黄','周','吴','林','孙','欧阳','司马','诸葛','上官','慕容','东方'];
-let pSur='',pGiven='',pMotto='study',pOnly='rand';
+let pSur='',pGiven='',pMotto='study',pOnly='rand',pCustom=false;
+const PREFK='life-wheel-pref';
+function savePref(){try{localStorage.setItem(PREFK,JSON.stringify({sur:pSur,given:pCustom?pGiven:'',gender,motto:pMotto,only:pOnly}))}catch(e){}}
+(()=>{try{const p=JSON.parse(localStorage.getItem(PREFK));if(p){if(p.sur)pSur=p.sur;if(p.given){pGiven=p.given;pCustom=true}if(p.gender)gender=p.gender;if(p.motto)pMotto=p.motto;if(p.only)pOnly=p.only}}catch(e){}})();
 let reArm=0;
 let S, busy=false, auto=false, speed=0, tab='act', mapSel=null, drawn=[], chosen=new Set(), rerolls=1, gender='男', alloc={int:3,app:3,str:3,happy:3}, pName='', silent=false;
 const SPD={label:['1x','2x','4x'],spin:[2000,1100,450],hold:[1300,700,280],start:[450,250,90],gap:[500,240,70]};
@@ -772,9 +775,10 @@ function nameSheet(title,note,def,gender){
     const inp=$('#kidName');$('#kidRand').onclick=()=>{inp.value=given(gender);inp.focus()};
     const ok=()=>{const v=inp.value.trim().slice(0,6);if(!v){$('#kidErr').textContent='名字不能为空';return}closeSheet();res(v)};
     $('#kidOk').onclick=ok;inp.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)ok()};escFn=null;ov.onclick=null;setTimeout(()=>inp.focus(),50);
-    if(auto)setTimeout(ok,SPD.hold[speed]);
+    if(auto&&!busyManual)setTimeout(ok,SPD.hold[speed]);
   });
 }
+let busyManual=false;
 function choose(title,note,opts,autoIdx){
   if(opts.every(o=>o.dis))opts.forEach(o=>o.dis=false);
   return new Promise(res=>{
@@ -849,17 +853,17 @@ function renderSetup(){
   const rl=(loadRec().lives_list||[]).slice().reverse();$('#view').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>openLife(rl[+b.dataset.h]));
   fillBoard();bindLegacy();
   const syncSur=()=>{pSur=$('#sur').value.trim().slice(0,3);$('#surs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===pSur))};
-  $('#sur').oninput=syncSur;$('#nm').oninput=()=>{pGiven=$('#nm').value.trim()};
-  $('#surs').onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;$('#sur').value=b.dataset.s;syncSur()};
-  $('#bName').onclick=()=>{pGiven=given(gender);$('#nm').value=pGiven};
-  $('#oseg').onclick=e=>{const o=e.target.dataset.o;if(!o)return;pOnly=o;$('#oseg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o))};
-  $('#gseg').onclick=e=>{const g=e.target.dataset.g;if(!g||g===gender)return;gender=g;pGiven=given(g);$('#nm').value=pGiven;
+  $('#sur').oninput=()=>{syncSur();savePref()};$('#nm').oninput=()=>{pGiven=$('#nm').value.trim();pCustom=!!pGiven;savePref()};
+  $('#surs').onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;$('#sur').value=b.dataset.s;syncSur();savePref()};
+  $('#bName').onclick=()=>{pGiven=given(gender);pCustom=false;$('#nm').value=pGiven;savePref()};
+  $('#oseg').onclick=e=>{const o=e.target.dataset.o;if(!o)return;pOnly=o;savePref();$('#oseg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o))};
+  $('#gseg').onclick=e=>{const g=e.target.dataset.g;if(!g||g===gender)return;gender=g;if(!pCustom){pGiven=given(g);$('#nm').value=pGiven}savePref();
     $('#gseg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===g))};
   $('#tg').onclick=e=>{const c=e.target.closest('.tcard');if(!c)return;const i=+c.dataset.i;
     if(chosen.has(i))chosen.delete(i);else if(chosen.size<TCAP)chosen.add(i);
     c.setAttribute('aria-pressed',chosen.has(i));const b=$('#bGo');b.disabled=chosen.size!==TCAP;b.textContent=`下一步 · ${chosen.size}/${TCAP}`};
   $('#bRoll').onclick=()=>{if(!rerolls)return;rerolls--;drawTalents();renderSetup()};
-  $('#bGo').onclick=()=>{pSur=($('#sur').value||'').trim().slice(0,3)||pick(SUR);pGiven=($('#nm').value||'').trim().slice(0,6)||given(gender);pName=pSur+pGiven;renderAlloc()};
+  $('#bGo').onclick=()=>{pSur=($('#sur').value||'').trim().slice(0,3)||pick(SUR);pGiven=($('#nm').value||'').trim().slice(0,6)||given(gender);pName=pSur+pGiven;savePref();renderAlloc()};
 }
 function renderAlloc(){
   const left=POOL-Object.values(alloc).reduce((a,b)=>a+b,0),T=[...chosen].map(i=>drawn[i]);
@@ -876,7 +880,7 @@ function renderAlloc(){
   $('#al').onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;const k=b.dataset.k;alloc[k]=clamp(alloc[k]+ +b.dataset.d,0,8);renderAlloc()};
   $('#bRand').onclick=()=>{alloc={int:0,app:0,str:0,happy:0};for(let i=0;i<POOL;){const k=pick(['int','app','str','happy']);if(alloc[k]<8){alloc[k]++;i++}}renderAlloc()};
   $('#bBack').onclick=()=>renderSetup();
-  $('#mot').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;pMotto=b.dataset.m;$('#mot').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===pMotto))};
+  $('#mot').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;pMotto=b.dataset.m;savePref();$('#mot').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.m===pMotto))};
   screen='alloc';$('#bStart').onclick=start;
 }
 async function start(){
@@ -1144,7 +1148,7 @@ A('baby',{n:'要孩子',h:'家里添丁',en:1,once:1,show:()=>married()&&kidsAli
 A('divorce',{n:'离婚',en:0,show:married,run:async()=>{const m=Math.max(0,net(S)-(S.preNet||0));const c=await choose('真的要离婚吗？',`婚前财产归各自，婚内增加的 ${fmtW(m)} 对半分，未成年孩子要定抚养权。`,[{label:'离',k:'y'},{label:'再想想',k:'n'}],1);if(c.k!=='y')return false;await divorceFlow('none')}});
 /* 子女 */
 const kd=t=>S.kids[+t];
-A('kRename',{n:'改名',en:0,once:1,show:t=>kd(t)&&kd(t).alive&&kd(t).age<=16,run:async t=>{const k=kd(t);const old=k.name;const gn=await nameSheet(`给${old}改名`,k.age>=6?'改名要去派出所，孩子可能不太高兴。':'',old.slice(S.sur.length),k.gender);if(S.sur+gn===old)return false;k.name=S.sur+gn;if(k.age>=6)k.rel=clamp(k.rel-3,0,100);log(`你把${old}的名字改成了<b>${k.name}</b>。`)}});
+A('kRename',{n:'改名',en:0,once:1,show:t=>kd(t)&&kd(t).alive&&kd(t).age<=16,run:async t=>{const k=kd(t);const old=k.name;busyManual=true;const gn=await nameSheet(`给${old}改名`,k.age>=6?'改名要去派出所，孩子可能不太高兴。':'',old.slice(S.sur.length),k.gender);busyManual=false;if(S.sur+gn===old)return false;k.name=S.sur+gn;if(k.age>=6)k.rel=clamp(k.rel-3,0,100);log(`你把${old}的名字改成了<b>${k.name}</b>。`)}});
 A('kComp',{n:'陪伴',en:1,show:t=>kd(t)&&kd(t).alive,run:async t=>{const k=kd(t);k.rel=clamp(k.rel+(S.flags.parenting?14:10),0,100);k.comp=1;
   log(`你陪${k.name}${k.age<6?'玩了一整天':k.age<18?pick(['写作业','去游乐场','打球','逛书店']):'吃了顿饭'}。`+apply({happy:1}))}});
 A('kTutor',{n:'报补习班',en:0,once:1,cost:()=>S.job&&['teacher','prof'].includes(S.job.track)?0:tutorCost(),show:t=>kd(t)&&kd(t).alive&&kd(t).age>=6&&kd(t).age<=17,run:async t=>{const k=kd(t);k.tutor=1;k.tutorN=(k.tutorN||0)+1;k.rel=clamp(k.rel-2,0,100);log(`你给${k.name}报了补习班。`+apply({cash:-tutorCost()}))}});
@@ -1348,9 +1352,10 @@ function kidYear(k){
     if(k.abroad||k.hs==='intl'){k.abroad=1;k.uniRank=R()<.1+k.int*.05?6:4;k.uniCity=pick(OVS);k.school=`${CITIES[k.uniCity].cc}${ovSchool(k.uniCity,k.uniRank)}`;k.studyType='bachelor'}
     else if(k.hs==='voc'){k.uniRank=2;k.school=`${cshort(S.city)}职业技术学院`;k.studyType='college';k.uniCity=S.city}
     else{const sc=clamp(Math.round(230+(k.acad||40)*3.3+k.int*7+(k.hs==='key'?25:0)+(k.tutorN||0)*4+ri(-45,35)),150,740);
-      k.gk={sc,age:k.age};log(`${k.name}${k.retook?'复读后再次':''}参加高考，考了 <b>${sc}</b> 分。`,'ms');S.q.push({t:'gk',k});return}
+      k.gk={sc,age:k.age};if(silent){kidGkAuto(k);return}log(`${k.name}${k.retook?'复读后再次':''}参加高考，考了 <b>${sc}</b> 分。`,'ms');S.q.push({t:'gk',k});return}
     k.stage='uni';k.gradAge=k.age+(k.studyType==='college'?3:4);k.edu=k.studyType==='college'?'专科在读':'本科在读';
     log(`${k.name}去${k.school}读大学了。`,'ms')}
+  if(k.stage==='hs'&&k.age>=19&&!S.q.some(e=>e.k===k&&e.t==='gk')&&!(k.reAge&&k.age<k.reAge)){if(!k.gk)k.gk={sc:clamp(Math.round(230+(k.acad||40)*3.3+k.int*7+ri(-45,35)),150,740),age:k.age};kidGkAuto(k)}
   if(k.stage==='uni'&&k.age>=k.gradAge){k.edu=k.studyType==='college'?'专科':k.abroad?'海外本科':'本科';k.eduRank=k.uniRank;k.stage='work';kidJob(k);
     log(`${k.name}大学毕业，在${cn(k.city)}当了${k.job}。`)}
   if(k.stage==='work'){k.cash=r1(k.cash+k.salary*.2);k.salary=r1(k.salary*1.01)}
@@ -1666,7 +1671,7 @@ async function afterGrad(){
   if(await takeOffer())return;
   await pickCity();
   const t=S.studyType,o=[{label:'找工作',sub:'投简历、面试、等 offer',k:'job'}];
-  if(MJ[S.major]&&t!=='phd'){const m=MJ[S.major];o.unshift({label:m[0],sub:m[1]+'（专业对口）',k:'mj'})}
+  if(MJ[S.major]&&t!=='phd'&&!(isOv(S.city)&&OV_BAN.includes(MJ[S.major][2][1]))){const m=MJ[S.major];o.unshift({label:m[0],sub:m[1]+'（专业对口）',k:'mj'})}
   if(t==='college')o.push({label:'专升本',sub:'再读两年，拿个本科',k:'zsb'});
   if(t==='bachelor'&&acad()>=85-(S.flags.compAward?7:0)-((S.lab||0)>=2?5:0)&&S.uniRank>=4)o.push({label:'保研',sub:`学业 ${acad()}，免试直接读研`,k:'by'});
   if(t==='bachelor')o.push({label:'考研',sub:`再卷三年，学历升级 · 学业 ${acad()}`,k:'ky'});
@@ -2149,7 +2154,7 @@ function startHeir(ki,mode,pickT){
   S.parents=[{role:prevGender==='男'?'父亲':'母亲',name:prevName,age:o.age,hp:0,rel:k.rel,alive:false,note:'已故'}];
   if(partner&&partner.married)S.parents.push({role:prevGender==='男'?'母亲':'父亲',name:partner.name,age:partner.age,hp:60,rel:k.rel,alive:true});
   S.pcash=r1(spouseShare);S.pinc=0;S.sibs=sibN;S.inherited=!(partner&&partner.married);
-  if(k.stage==='work'){if(k.job){S.job={name:k.job,kind:'private',salary:k.salary};attachLadder(S.job);S.jobs=[k.job];S.stage='work'}else S.stage='idle'}
+  if(k.stage==='work'){if(k.job){S.job={name:k.job,kind:k.jobKind||'private',salary:k.salary,org:k.org||''};attachLadder(S.job);S.jobs=[k.job];S.stage='work'}else S.stage='idle'}
   else if(k.stage==='uni'){S.stage='uni';S.pending={age:Math.max(k.gradAge,k.age+1),type:'grad'};S.edu=k.edu}
   else if(k.stage==='hs'){S.stage='school';S.pending={age:Math.max(18,k.age+1),type:k.abroad||k.hs==='intl'?'abroadUni':k.hs==='voc'?'voc':'gaokao'}}
   else S.stage=k.age>=6?'school':'baby';
@@ -2197,7 +2202,7 @@ function drawChart(cv){
   const span=maxA-a0,step=span>60?20:span>30?10:5;
   for(let a=Math.ceil(a0/step)*step;a<=maxA;a+=step){x.textAlign=a===a0?'left':'center';x.fillText(a+'岁',X(a),H-4)}
 }
-function restart(){TCAP=6;legacyBuy={};auto=false;busy=false;S=null;pGiven='';screen='setup';lastHud=null;mapSel=null;rerolls=1;drawTalents();closeSheet();$('#view').innerHTML='';renderSetup();window.scrollTo(0,0)}
+function restart(){TCAP=6;legacyBuy={};auto=false;busy=false;S=null;if(!pCustom)pGiven='';screen='setup';lastHud=null;mapSel=null;rerolls=1;drawTalents();closeSheet();$('#view').innerHTML='';renderSetup();window.scrollTo(0,0)}
 
 /* ================= 家族 ================= */
 const MOTTOS=[
@@ -2462,7 +2467,7 @@ A('frHelp',{n:'求帮忙',h:'感情↓',en:0,once:1,show:t=>{const f=(S.friends|
   if(f.mk==='job'&&S.job&&!['retired','boss'].includes(S.job.kind))opts.push({label:'求升职',sub:'年薪 +25%',k:'job'});
   if(f.mk==='job'&&!S.job)opts.push({label:'求介绍工作',sub:'直接给一份好工作',k:'intro'});
   if(f.mk==='biz'&&S.co&&!S.co.listed)opts.push({label:'求投资',sub:`给公司注资 ${fmtW(Math.round(S.co.val*.3))}，换 15% 股份`,k:'inv'});
-  if(f.mk==='gov'&&S.age<=35&&!(S.job&&S.job.kind==='gov'))opts.push({label:'求个编制',sub:'直接进体制',k:'gov'});
+  if(f.mk==='gov'&&S.age<=35&&!isOv(S.city)&&!(S.job&&S.job.kind==='gov'))opts.push({label:'求个编制',sub:'直接进体制',k:'gov'});
   if(f.mk==='hp')opts.push({label:'求调理身体',sub:'健康 +20',k:'hp'});
   if(f.mk==='love'&&!S.partner&&!S.flags.solo)opts.push({label:'求介绍对象',sub:'条件不错的',k:'love'});
   if(f.mk==='study'&&['school','uni'].includes(S.stage))opts.push({label:'求指点学业',sub:'智力 +2',k:'study'});
@@ -2470,7 +2475,7 @@ A('frHelp',{n:'求帮忙',h:'感情↓',en:0,once:1,show:t=>{const f=(S.friends|
   const c=await choose(`找${f.trait}${f.name}帮忙`,`感情 ${f.rel}。求人一次，情分就薄一分。`,opts,0);if(!c.k)return false;
   f.rel=clamp(f.rel-25,0,100);S.flags.askedMentor=1;
   if(c.k==='job'){S.job.salary=r1(S.job.salary*1.25);capSal();log(`${f.name}帮你说了话，年薪涨到 ${fmtW(S.job.salary)}。`)}
-  else if(c.k==='intro'){setJob(pick(['国企职员','外企白领','私企经理']),pick(['soe','foreign','private']),18);log(`${f.name}一个电话，帮你安排了工作。`)}
+  else if(c.k==='intro'){const jj=isOv(S.city)?pick([['跨国公司职员','foreign'],['当地公司职员','private']]):pick([['国企职员','soe'],['外企白领','foreign'],['私企经理','private']]);setJob(jj[0],jj[1],18);log(`${f.name}一个电话，帮你安排了工作。`)}
   else if(c.k==='inv'){const amt=Math.round(S.co.val*.3);S.co.val+=amt;S.co.runway=3;S.co.share=Math.round(S.co.share*.85);log(`${f.name}给${S.co.name}投了 ${fmtW(amt)}，你持股降到 ${S.co.share}%。`)}
   else if(c.k==='gov'){setJob('公务员','gov',12);log(`${f.name}帮你办进了体制。`)}
   else if(c.k==='hp')log(`${f.name}给你调理了半年。`+apply({hp:20,str:1}));
@@ -3261,9 +3266,9 @@ function lawTick(){
   if(R()<p){
     const yrs=S.dirty>=6?ri(5,12):S.dirty>=3?ri(1,5):0,fine=Math.round(S.dirty*8+Math.max(0,S.cash)*.3);
     S.flags.caught=1;S.fame=Math.max(0,(S.fame||0)-20);
-    log(`东窗事发！${S.job?S.job.name+'任上的':''}问题被查了出来。没收违法所得，罚款 ${fmtW(fine)}。`+apply({cash:-fine,happy:-5}),'bad');
+    const ret=S.job&&S.job.kind==='retired';log(`东窗事发！${ret?'退休前':S.job?S.job.name+'任上的':''}问题被查了出来。没收违法所得，罚款 ${fmtW(fine)}。`+apply({cash:-fine,happy:-5}),'bad');
     if(S.job&&S.job.kind!=='retired'){S.job=null;S.co=null}
-    if(yrs){S.jail=yrs;S.stage='jail';S.flags.jailed=1;log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else{S.stage='idle';log('你被开除了，档案上留下了处分。','bad')}
+    if(yrs){S.jail=yrs;S.stage='jail';S.flags.jailed=1;log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else if(ret){S.job.salary=r1(S.job.salary*.5);log('退休待遇被取消了一半。','bad')}else{S.stage='idle';log('你被开除了，档案上留下了处分。','bad')}
     S.dirty=0;
   }else if(R()<.1)S.dirty=Math.max(0,S.dirty-1);
 }
@@ -3372,6 +3377,12 @@ async function kidSick(k,il){
   else if(c.k==='c'){S.cash=r1(S.cash-il.c*.3);k.hp=clamp(k.hp+5,0,100);log(`你带${k.name}去社区诊所看了${il.n}。`)}
   else if(c.k==='f'){const got=ri(10,50);S.cash=r1(S.cash+got-il.c);k.hp=clamp(k.hp+40,0,100);log(`你在网上发起众筹，好心人凑了 ${got} 万，加上家里的积蓄给${k.name}做了手术。`+apply({happy:-2}),'ms')}
   else{k.hp=clamp(k.hp-8,0,100);k.rel=clamp(k.rel-6,0,100);log(`${k.name}${il.n}，你没带去看，让孩子自己扛。`+apply({happy:-1}),'bad')}
+}
+function kidGkAuto(k){
+  const t=TIERS.find(x=>k.gk.sc>=x.min);
+  if(t.rank<0){k.stage='work';k.edu='高中';k.eduRank=1;kidJob(k);return}
+  const s=[...pick(t.pool)];s[0]=sname(s[0]);k.uniRank=t.rank;k.school=s[0];k.uniCity=s[1];k.studyType=t.rank===2?'college':'bachelor';
+  k.stage='uni';k.gradAge=k.age+(k.studyType==='college'?3:4);k.edu=k.studyType==='college'?'专科在读':'本科在读';
 }
 async function kidGaokao(k){
   const g=k.gk;const t=TIERS.find(x=>g.sc>=x.min);const o=[];
