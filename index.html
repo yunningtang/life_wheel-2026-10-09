@@ -732,11 +732,21 @@ function newState(o){
 const kidsAlive=()=>S.kids.filter(k=>k.alive);
 const married=()=>!!(S.partner&&S.partner.married);
 const isAdult=()=>S.age>=18&&!isDep();
-function isDep(){return (S.age<18&&S.stage!=='idle')||['school','uni'].includes(S.stage)}
+function isDep(){return (S.age<18&&S.stage!=='idle')||['school','uni','prep'].includes(S.stage)}
 const C=()=>CITIES[S.city];
 const hv=h=>Math.round(CITIES[h.city].price*S.pidx[h.city]*h.m);
 const ownsIn=c=>S.houses.some(h=>h.city===c&&!h.rent);
-const liveWithParents=()=>S.parents.some(p=>p.alive)&&S.phome&&S.phome.city===S.city&&!married();
+const pcity=()=>S.pcity||(S.phome?S.phome.city:'home');
+const liveWithParents=()=>S.parents.some(p=>p.alive)&&S.phome&&S.phome.city===S.city&&(!married()||S.livePar)&&!ownsIn(S.city)&&S.stage!=='uni';
+/* 统一的搬家入口：换城市时处理工作、租房、公司 */
+function relocate(t,why){
+  if(!CITIES[t]||t===S.city)return;
+  const j=S.job;
+  if(j&&!['retired','boss'].includes(j.kind)){log(`${why||'搬家'}，你辞去了${cn(S.city)}的${j.name}工作。`,'dim');S.job=null;S.stage=S.stage==='work'?baseStage():S.stage}
+  else if(j&&j.kind==='boss'&&S.co&&!S.co.retired&&S.co.city&&S.co.city!==t){S.co.city=t;log(`${S.co.name}的总部也跟着搬到了${cn(t)}。`,'dim')}
+  if(isOv(t))S.flags.abroadEver=1;if(isOv(S.city)&&!isOv(t))S.flags.haigui=1;
+  S.city=t;S.cityChosen=true;S.livePar=0;
+}
 const carBest=()=>S.cars.reduce((a,c)=>Math.max(a,c.p),0);
 const eq=s=>s.co?Math.round(s.co.val*s.co.share/100*(s.co.listed?1:.2)):0;
 const housesEq=s=>s.houses.reduce((a,h)=>a+Math.round(CITIES[h.city].price*s.pidx[h.city]*h.m)-h.loan,0);
@@ -950,7 +960,7 @@ async function birth(){
   fa.h=Math.round(nrm(172,6)+(f.m>=6?2:f.m<=2?-2:0));mo.h=Math.round(nrm(160,5)+(f.m>=6?1.5:f.m<=2?-1.5:0));
   S.body=mkBody(S.gender,fa.h,mo.h,f.m,S.flags.tallgene?7:0);
   S.parents=[fa,mo];S.pcash=r1(f.cash*(.7+R()*.6));S.pinc=f.inc;
-  S.phome={city:S.city,value:Math.round(CITIES[S.city].price*f.house)};
+  S.phome={city:S.city,value:Math.round(CITIES[S.city].price*f.house)};S.pcity=S.city;
   S.sibs=S.flags.only||pOnly==='only'?0:pOnly==='sib'?ri(1,2):pickW(f.m<=2?[{n:0,w:25},{n:1,w:45},{n:2,w:30}]:[{n:0,w:65},{n:1,w:30},{n:2,w:5}]).n;
   newYearLog();
   log(`${esc(S.name)}出生在${cn(S.city)}的一个<b>${S.family}</b>，是个${S.gender==='男'?'男孩':'女孩'}。`,'ms');
@@ -1036,7 +1046,7 @@ function avail(id,t){
   return true;
 }
 const AG={body:['形','jade'],kaogong:['公','blue'],study:['学','blue'],hobby:['趣','violet'],cure:['医','seal'],will:['嘱','muted'],work:['干','seal'],coStep:['退','muted'],coSell:['让','gold'],coClose:['停','muted'],famBiz:['承','gold'],reunion:['聚','pink'],research:['研','jade'],shop:['购','violet'],paAsk:['要','gold'],study:['学','blue'],play:['玩','gold'],gym:['练','jade'],beauty:['美','pink'],therapy:['心','violet'],relax:['躺','gold'],travel:['旅','jade'],lottery:['彩','gold'],ot:['班','seal'],party:['酒','violet'],side:['副','gold'],invest:['股','seal'],jobhunt:['职','blue'],quit:['辞','muted'],kaogong:['公','blue'],kaoyan:['研','blue'],startup:['创','seal'],buyCar:['车','violet'],buyHouse:['房','jade']};
-Object.assign(AG,{uniLife:['校','blue'],wish:['愿','pink'],rentHome:['租','jade'],fortune:['卦','gold'],sbSettle:['补','gold']});
+Object.assign(AG,{livePar:['家','jade'],uniLife:['校','blue'],wish:['愿','pink'],rentHome:['租','jade'],fortune:['卦','gold'],sbSettle:['补','gold']});
 const hintFmt=h=>h.replace(/↑+/g,m=>`<b class="up">${'▲'.repeat(m.length)}</b>`).replace(/↓/g,'<b class="dn">▼</b>');
 function actBtn(id,t){
   const st=avail(id,t);if(st===null)return '';const a=ACT[id];
@@ -1109,7 +1119,7 @@ A('invest',{n:'炒短线',h:'赌一把，高风险',en:1,show:()=>isAdult()&&S.c
 A('jobhunt',{n:()=>S.job?'跳槽':'找工作',h:()=>S.job?'看看外面的机会':'投简历、面试',en:1,show:()=>isAdult()&&S.age<60&&!S.co&&S.stage!=='retired',run:async()=>{await jobWheel('',!!S.job)}});
 A('quit',{n:'辞职',h:'先歇一歇',en:0,show:()=>S.job&&!['retired','boss'].includes(S.job.kind),run:async()=>{
   const c=await choose('真的要辞职吗？',`你现在是${S.job.name}，年薪 ${fmtW(S.job.salary)}。`,[{label:'辞了',k:'y'},{label:'再想想',k:'n'}],1);
-  if(c.k!=='y')return false;log(`你辞去了${S.job.name}的工作。`+apply({happy:1}));S.job=null;S.stage='idle'}});
+  if(c.k!=='y')return false;log(`你辞去了${S.job.name}的工作。`+apply({happy:1}));S.job=null;S.stage=baseStage()}});
 A('kaogong',{n:'考公务员',h:'铁饭碗',en:1,once:1,show:()=>isAdult()&&!isOv(S.city)&&S.age<=35&&S.eduRank>=2&&!S.flags.exCon&&!(S.job&&S.job.kind==='gov')&&!S.co,run:async()=>{await kaogong(true)}});
 A('kaoyan',{n:'考研',h:'学历升级，要辞职读书',en:1,once:1,show:()=>isAdult()&&S.age<=35&&['本科','海外本科'].includes(S.edu)&&!S.co,run:async()=>{await kaoyan(true)}});
 A('startup',{n:'创业',h:'九死一生',en:1,show:()=>isAdult()&&!S.co&&S.age<56&&S.stage!=='retired',run:async()=>{const r=await startup(true);if(r==='cancel')return false}});
@@ -1200,11 +1210,10 @@ A('coInvest',{n:'给公司注资',en:0,once:1,show:()=>S.co&&!S.co.listed&&!S.co
   if(!c.k)return false;S.co.val=Math.round(S.co.val+c.k*1.3);S.co.runway=Math.max(S.co.runway,1);log(`你给${S.co.name}注资 ${fmtW(c.k)}。`+apply({cash:-c.k}))}});
 A('move',{n:t=>isOv(t)&&!S.flags.pr&&!S.flags.abroadEver?`移民到${cn(t)}`:`搬到${cn(t)}`,h:'',en:1,cost:t=>isOv(t)?(S.flags.pr||S.flags.abroadEver?10:100):2,show:t=>isAdult()&&!!CITIES[t]&&t!==S.city,run:async t=>{
   const lose=S.job&&!['retired','boss'].includes(S.job.kind),imm=isOv(t)&&!S.flags.pr&&!S.flags.abroadEver;
-  if(lose||imm){const c=await choose(`${imm?'移民':'搬'}到${cn(t)}？`,`${imm?'投资移民要花 90 万。':''}${lose?`你得辞掉${S.job.name}的工作，到那边重新找。`:''}`,[{label:imm?'移民':'搬',k:'y'},{label:'再想想',k:'n'}],1);if(c.k!=='y')return false;if(lose){S.job=null;S.stage='idle'}}
+  const par=t===pcity()&&S.parents.some(p=>p.alive);
+  if(lose||imm){const c=await choose(`${imm?'移民':'搬'}到${cn(t)}？`,`${imm?'投资移民要花 90 万。':''}${lose?`你得辞掉${S.job.name}的工作，到那边重新找。`:''}${par?'父母在那边，可以先住家里。':''}`,[{label:imm?'移民':'搬',k:'y'},{label:'再想想',k:'n'}],1);if(c.k!=='y')return false}
   if(imm)log('你花了 90 万办理投资移民。'+apply({cash:-90}));
-  if(isOv(t))S.flags.abroadEver=1;
-  if(isOv(S.city)&&!isOv(t))S.flags.haigui=1;
-  const mc=isOv(t)?10:2;log(`你搬到了${cn(t)}。`+apply({cash:-mc}),'ms');S.city=t;S.cityChosen=true;mapSel=t}});
+  const mc=isOv(t)?10:2;relocate(t,'搬家');log(`你搬到了${cn(t)}${par?'，先住回了父母家':ownsIn(t)?'，住进了自己的房子':''}。`+apply({cash:-mc}),'ms');mapSel=t}});
 
 /* ---------- 面板：本年 ---------- */
 function panelAct(){
@@ -1441,7 +1450,7 @@ function budget(){
   inc+=S.houses.filter(h=>h.rent).reduce((a,h)=>a+hv(h)*.02,0);
   add('生活费',S.jail?0:(hasP('thrift')?.9:hasP('spend')?1.12:1)*(c.cost*(S.job&&S.job.kind==='farmer'?.7:1)*(ret?.6:1)*(married()?1.7:1)+inc*.2)*(motto('frugal')?.85:1)*(S.flags.stingy?.9:1));
   if(S.age>=55||S.flags.cancer)add('看病',Math.max(0,S.age-55)*.25+(S.flags.cancer?5:0)+(S.hp<40?3:0));
-  if(!S.jail&&!ownsIn(S.city)&&!liveWithParents())add(`房租(${(RENT[curRent()||'whole']||RENT.whole).n})`,r1(c.rent*rentM()));
+  if(!S.jail&&S.stage!=='uni'&&!ownsIn(S.city)&&!liveWithParents())add(`房租(${(RENT[curRent()||'whole']||RENT.whole).n})`,r1(c.rent*rentM()));
   add('房贷',S.houses.reduce((a,h)=>a+(h.yrs>0?h.pay:0),0));
   add('养车',S.cars.reduce((a,x)=>a+1+x.p*.01,0));
   kidsAlive().filter(k=>!k.away).forEach(k=>add(`${k.name}·${KCOST_LBL(k)||'开销'}`,kidCost(k)));
@@ -1529,7 +1538,7 @@ async function parentsTick(){
 async function partnerTick(){
   const p=S.partner;if(!p)return;
   p.age++;
-  if(p.married){p.love-=(S.flags.homebody?2:4)-(motto('filial')?1:0)+(hasP('hot')?1:0)-(hasP('warm')?1:0);if(p.age<60)p.salary=r1(p.salary*1.01);else if(!p.ret){p.ret=1;p.salary=r1(Math.max(1.5,p.salary*.4))}}
+  if(p.married){p.love-=(S.flags.homebody?2:4)-(motto('filial')?1:0)+(hasP('hot')?1:0)-(hasP('warm')?1:0)+(S.livePar?3:0);if(S.livePar&&R()<.2)log(pick([`${p.name}和你妈为了孩子的事吵了一架。`,`${p.name}说想有自己的空间。`,`你爸妈嫌${p.name}起得晚。`]),'dim');if(p.age<60)p.salary=r1(p.salary*1.01);else if(!p.ret){p.ret=1;p.salary=r1(Math.max(1.5,p.salary*.4))}}
   else p.love-=3;
   p.love=clamp(p.love,0,100);
   if(p.married&&R()<npcDeathP(p.age)*.9){log(`你的${spouseWord()}${p.name}去世了。`+apply({happy:-5}),'bad');S.partner=null;S.inlaws=null;return}
@@ -1563,7 +1572,7 @@ async function nextYear(){
     S.hist.push({a:S.age,n:net(S),h:S.st.happy});
     S.age++;newYearLog();S.yr={};sfx('year');
     await milestones();
-    if(S.alive){if(!S.jail){jobEvent();cityEvent();await randomEvent()}quoteTick();deathCheck()}
+    normalizeStage();if(S.alive){if(!S.jail){jobEvent();cityEvent();await randomEvent()}quoteTick();deathCheck()}
     if(S.alive)setEnergy();
   }catch(e){
     console.error(e);if(S.age===startAge){S.age++;newYearLog();S.yr={}}S.pending=S.pending&&S.pending.age<=S.age?null:S.pending;
@@ -1667,11 +1676,21 @@ const PEND={
   async kaogong2(){await kaogong(false,true)},
   async jobhunt(){
     if(S.age>=58){S.job={name:'退休',kind:'retired',salary:1.5};S.stage='retired';log('这个年纪已经没人要了，你提前回家养老。');return}
-    if(S.age>=22&&S.age<=50){const c=await choose('待业中','接下来打算怎么办？',[{label:'继续找工作',sub:'投简历，等面试',k:'j'},...(S.famBiz?[{label:`接手${S.famBiz.name}`,sub:'家族企业',k:'f'}]:[]),{label:'自己创业',sub:S.coCount?'跌倒了再爬起来':'给自己打工',k:'b'},{label:'先歇一年',sub:'吃老本',k:'r'}],0);
-      if(c.k==='b'){await startup();return}if(c.k==='f'){takeFamBiz();return}if(c.k==='r'){log('你决定先歇一年。');return}}
+    if(S.age>=22&&S.age<=50){const c=await choose('待业中','接下来打算怎么办？',[{label:'继续找工作',sub:'投简历，等面试',k:'j'},...(S.famBiz?[{label:`回${cshort(pcity())}接手${S.famBiz.name}`,sub:'家族企业',k:'f'}]:[]),{label:'自己创业',sub:S.coCount?'跌倒了再爬起来':'给自己打工',k:'b'},{label:'先歇一年',sub:'吃老本',k:'r'}],0);
+      if(c.k==='b'){await startup();return}if(c.k==='f'){if(S.city!==pcity()){relocate(pcity(),'回家接班');log(`你回到${cn(S.city)}接手家里的生意。`)}takeFamBiz();return}if(c.k==='r'){log('你决定先歇一年。');return}}
     await jobWheel(S.age>=35?'年纪大了，找工作越来越难。':'');
   },
 };
+function baseStage(){if(S.job&&S.job.kind==='retired')return 'retired';if(S.job&&S.job.kind==='boss'&&S.co&&!S.co.retired)return 'work';if(S.pending&&S.pending.type==='grad')return 'uni';if(S.pending&&['gaokao','abroadUni','voc'].includes(S.pending.type))return 'school';if(S.pending&&['kaoyan2','kaogong2'].includes(S.pending.type))return 'prep';return 'idle'}
+function normalizeStage(){
+  if(!S||!S.alive||S.jail>0)return;
+  const st=['uni','school','prep'].includes(S.stage);
+  if(S.job&&st){if(S.job.kind==='boss'&&S.co&&!S.co.retired){S.co.retired=1}S.job=null;return}
+  if(S.job&&!['work','retired'].includes(S.stage))S.stage=S.job.kind==='retired'?'retired':'work';
+  if(!S.job&&S.stage==='work')S.stage=baseStage();
+  if(S.co&&!S.co.retired&&!S.co.listed&&!S.job&&!st){S.job={name:`${S.co.name}董事长`,kind:'boss',salary:r1(clamp(S.co.val*.004,5,300))};S.stage='work'}
+  if(S.job&&!['retired','boss'].includes(S.job.kind)&&S.job.city&&S.job.city!==S.city)S.job.city=S.city;
+}
 function goJail(yrs){S.jail=yrs;S.stage='jail';S.flags.jailed=1;if(S.job&&S.job.kind!=='retired')S.job=null;
   if(S.pending&&['grad','gaokao','abroadUni','voc','kaoyan2','kaogong2'].includes(S.pending.type)){S.pending=null;if(S.edu.includes('在读'))S.edu=S.edu.replace('在读','肄业');log('学校知道后把你开除了。','bad')}}
 function enroll(sch,city,rank,type,yrs,abroad){
@@ -1689,11 +1708,12 @@ async function pickMajor(college){
 }
 async function pickCity(){
   if(S.cityChosen)return;S.cityChosen=true;
-  const ids=[...(isOv(S.city)?[S.city]:[]),...T1,...(T2.includes(S.city)?[S.city]:[]),...['hz','cd'].filter(x=>x!==S.city),'home'];
+  const pc=pcity(),pa=S.parents.some(p=>p.alive);
+  const ids=[...new Set([...(isOv(S.city)?[S.city]:[]),...T1,...(T2.includes(S.city)?[S.city]:[]),...['hz','cd'].filter(x=>x!==S.city),pc,'home'])];
   const c=await choose('去哪座城市打拼？','城市决定工资，也决定房价和生活成本。在“地图”页能随时搬家。',
-    ids.map(id=>({label:id==='home'?`回老家（${cn('home')}）`:cn(id)+(id===S.city?(isOv(id)?'（留在当地工作）':'（留在这里）'):''),sub:`工资 ×${CITIES[id].sal} · 房价 ${fmtW(CITIES[id].price*S.pidx[id])} · 生活费 ${fmtW(CITIES[id].cost)}/年`,k:id})),ids.indexOf(S.city)>=0?ids.indexOf(S.city):4);
-  if(c.k!==S.city){if(isOv(S.city)&&!isOv(c.k)){S.flags.haigui=1;log(`你学成回国，成了“海归”，找工作有加成。`)}else log(c.k==='home'?'你决定回老家发展。':`你拖着行李箱来到了${cn(c.k)}。`)}
-  S.city=c.k;
+    ids.map(id=>({label:(id===pc&&pa?`回父母身边（${cn(id)}）`:id==='home'?`回老家（${cn('home')}）`:cn(id))+(id===S.city?(isOv(id)?'（留在当地工作）':'（留在这里）'):'')+(id===pc&&pa&&!married()?'（可以住家里）':''),sub:`工资 ×${CITIES[id].sal} · 房价 ${fmtW(CITIES[id].price*S.pidx[id])} · 生活费 ${fmtW(CITIES[id].cost)}/年`,k:id})),ids.indexOf(S.city)>=0?ids.indexOf(S.city):4);
+  if(c.k!==S.city){if(isOv(S.city)&&!isOv(c.k)){S.flags.haigui=1;log(`你学成回国，成了“海归”，找工作有加成。`)}else log(c.k===pc&&pa?`你回到了父母身边的${cn(c.k)}。`:c.k==='home'?'你决定回老家发展。':`你拖着行李箱来到了${cn(c.k)}。`)}
+  relocate(c.k,'毕业');S.cityChosen=true;
 }
 async function afterGrad(){
   if(await takeOffer())return;
@@ -1705,7 +1725,7 @@ async function afterGrad(){
   if(t==='bachelor')o.push({label:'考研',sub:`再卷三年，学历升级 · 学业 ${acad()}`,k:'ky'});
   if(t==='master')o.push({label:'读博',sub:'学术之路，头发堪忧',k:'phd'});
   if(t==='phd')o.push({label:'争取高校教职',sub:'成为大学老师',k:'prof'});
-  if(S.famBiz&&!S.co)o.push({label:`接手${S.famBiz.name}`,sub:`家族企业，估值 ${fmtW(S.famBiz.val)}，父母先给你 60% 股份`,k:'fam'});
+  if(S.famBiz&&!S.co)o.push({label:`回${cshort(pcity())}接手${S.famBiz.name}`,sub:`家族企业，估值 ${fmtW(S.famBiz.val)}，父母先给你 60% 股份`,k:'fam'});
   o.push({label:'考公务员',sub:'铁饭碗，千军万马过独木桥',k:'gk'});
   if(t==='bachelor'&&isOv(S.city))o.push({label:`在${cn(S.city)}读研`,sub:`再读两年，每年约 ${OVU[S.city].tu} 万`,k:'ovm'});
   else if(t==='bachelor'&&S.pcash>=80)o.push({label:'出国读研',sub:'家里出钱，海外镀金两年',k:'abm'});
@@ -1722,7 +1742,7 @@ async function afterGrad(){
   else if(c.k==='gk')await kaogong(false);
   else if(c.k==='abm'||c.k==='ovm'){const d=c.k==='ovm'?S.city:pick(OVS),sc=ovSchool(d,Math.max(4,Math.round(S.uniRank)));log(`你去${cn(d)}的<b>${sc}</b>读研，两年学费从家里出。`,'ms');S.abroad=true;S.flags.abroadEver=1;enroll(sc,d,Math.max(S.uniRank,4),'master',2,true)}
   else if(c.k==='biz')await startup();
-  else if(c.k==='fam')takeFamBiz();
+  else if(c.k==='fam'){if(S.city!==pcity()){relocate(pcity(),'回家接班');log(`你回到${cn(S.city)}接手家里的生意。`)}takeFamBiz()}
 }
 async function kaoyan(fromAct,second){
   const r=await wheel(second?'考研 · 二战':'考研','初试、复试，一关一关过。',[{label:'成功上岸',w:5+acad()*.4+S.st.int*2+S.uniRank*2+(second?10:0),g:2,d:'看到录取通知那天，你哭了。'},{label:'差几分落榜',w:35,g:-2,d:'就差那么几分。'}]);
@@ -1765,7 +1785,7 @@ function setJob(name,kind,base,raw,org,keep){
   if(S.flags.worker)sal*=1.2;if(!raw&&S.flags.haigui&&!isOv(S.city))sal*=1.15;sal=Math.max(3,r1(sal));
   if(kind==='gov'&&!S.flags.gov){S.flags.gov=1;honor(6,null)}
   if(org===undefined)org=orgFor(kind,S.city);
-  S.job={name,kind,salary:sal,org:org||''};attachLadder(S.job);S.internKind=null;if(keep&&LADDER[keep.track]){S.job.track=keep.track;S.job.lv=keep.lv;S.job.name=LADDER[keep.track].t[keep.lv]}name=S.job.name;capSal();sal=S.job.salary;S.jobs.push((org?org+'·':'')+name);S.stage='work';
+  S.job={name,kind,salary:sal,org:org||'',city:S.city};attachLadder(S.job);S.internKind=null;if(keep&&LADDER[keep.track]){S.job.track=keep.track;S.job.lv=keep.lv;S.job.name=LADDER[keep.track].t[keep.lv]}name=S.job.name;capSal();sal=S.job.salary;S.jobs.push((org?org+'·':'')+name);S.stage='work';
   log(`你在${cn(S.city)}${org?`的<b>${org}</b>`:''}成为了<b>${name}</b>，${fmtPay(sal)}。${PERK[S.job.track]?`<em class="fx"><span class="up">职业福利：${PERK[S.job.track]}</span></em>`:''}`,'ms');
 }
 async function jobWheel(note,switching){
@@ -1820,7 +1840,7 @@ async function career(){
   S.otAcc=0;if(j.promo)j.promo=Math.floor(j.promo/2);
   const r=await wheel(a===35?'35 岁职场关卡':`${a} 岁职场转盘`,`当前：${j.name}，年薪 ${fmtW(j.salary)}`,segs);
   const fx=apply({happy:r.h,str:r.st});
-  if(r.fire){if(a>=35&&r.label==='被裁员')S.flags.laid35=1;log(`${r.label}。`+fx+apply({happy:-2}),'bad');S.job=null;S.stage='idle'}
+  if(r.fire){if(a>=35&&r.label==='被裁员')S.flags.laid35=1;log(`${r.label}。`+fx+apply({happy:-2}),'bad');S.job=null;S.stage=baseStage()}
   else if(['提拔晋升','升职加薪','升了组长','评上教授','涨粉百万'].includes(r.label)||/^拿下/.test(r.label)){
     if(/^拿下/.test(r.label))honor(40,`${S.name}${r.label}`);
     if(!(await promote(r.label))){j.salary=r1(j.salary*r.m);capSal();log(`${r.label}，${fmtPay(j.salary)}。`+fx)}}
@@ -1856,13 +1876,13 @@ const REQT={4:'一本',5:'211',6:'985'};
 const STAGE=['初创','天使轮','A 轮','B 轮','C 轮','已上市'],STAGE_V=[0,800,4000,20000,80000,300000];
 function takeFamBiz(){
   const b=S.famBiz;S.famBiz=null;
-  S.co={name:b.name,t:'fam',stage:b.val>=4000?3:b.val>=800?2:1,val:b.val,share:60,y:0,born:S.age,runway:3,wait:0,offer:0,city:S.city,fam:1};S.coCount++;
+  S.co={name:b.name,t:'fam',stage:b.val>=4000?3:b.val>=800?2:1,val:b.val,share:60,y:0,born:S.age,runway:3,wait:0,offer:0,city:pcity(),fam:1};S.coCount++;
   S.job={name:`${b.name}少东家`,kind:'boss',salary:r1(clamp(b.val*.004,8,300))};S.jobs.push('接班人');S.stage='work';S.flags.founder=1;S.flags.heirBiz=1;
   log(`你接手了家族企业<b>${b.name}</b>，父母把 60% 的股份交给了你。`,'gold');honor(10,`${S.name}接掌${b.name}`);
 }
 A('famBiz',{n:()=>`接手${S.famBiz?S.famBiz.name:'家族企业'}`,h:'少东家',en:1,show:()=>S.famBiz&&isAdult()&&!S.co&&S.parents.some(p=>p.alive),run:async()=>{
-  const c=await choose(`接手${S.famBiz.name}？`,`估值 ${fmtW(S.famBiz.val)}，父母先给你 60% 股份。${S.job?`你得辞掉${S.job.name}的工作。`:''}`,[{label:'接手',k:'y'},{label:'再想想',k:'n'}],0);
-  if(c.k!=='y')return false;if(S.job){log(`你辞去了${S.job.name}的工作。`);S.job=null}takeFamBiz()}});
+  const c=await choose(`接手${S.famBiz.name}？`,`${S.famBiz.name}在${cn(pcity())}，估值 ${fmtW(S.famBiz.val)}，父母先给你 60% 股份。${S.job?`你得辞掉${S.job.name}的工作。`:''}${S.city!==pcity()?`接班要搬回${cn(pcity())}。`:''}`,[{label:'接手',k:'y'},{label:'再想想',k:'n'}],0);
+  if(c.k!=='y')return false;if(S.job){log(`你辞去了${S.job.name}的工作。`);S.job=null}if(S.city!==pcity()){relocate(pcity(),'回家接班');log(`你回到${cn(S.city)}，接手家里的生意。`)}takeFamBiz()}});
 async function startup(fromAct){
   const pf=S.parents.some(p=>p.alive)?Math.max(0,S.pcash*.5):0;
   const cm=k=>(TRACK[k].cities||{})[S.city]||1;
@@ -1890,7 +1910,7 @@ async function coYear(){
   c.val=Math.max(10,Math.round(c.val*r.m));c.runway=Math.max(0,c.runway-1);
   log(`${c.name}${r.label}：${r.d}估值 ${fmtW(c.val)}。`+apply({happy:r.g>0?1:r.g<0?-1:0,hp:-2}),r.g<-1?'bad':'');
   if(r.crash){await coCrash();return}
-  if(!S.job)S.job={name:`${c.name}董事长`,kind:"boss",salary:5};S.job.salary=r1(clamp(c.val*.004,5,300));
+  if(!S.job){S.job={name:`${c.name}董事长`,kind:"boss",salary:5};if(S.stage==='idle')S.stage='work'}S.job.salary=r1(clamp(c.val*.004,5,300));
   if(c.stage<T.ceil&&c.val>=STAGE_V[c.stage+1]&&S.age>=c.wait)await coFund();
   else if(c.stage>=1&&S.age>=c.offer&&R()<(c.stage>=T.ceil?.3:.1))await coOffer();
 }
@@ -1924,7 +1944,7 @@ async function coCrash(){
     log('钱砸进去了，公司还是没救回来。'+fx,'bad')}
   const debt=Math.round(Math.min(c.val*.1,150));S.flags.bankrupt=1;S.coLog.push(`${c.name}（破产）`);
   log(`${c.name}破产清算。你背上了 ${fmtW(debt)} 的债务。`+apply({cash:-debt,happy:-3,app:-1}),'bad');
-  S.co=null;S.job=null;S.stage='idle';
+  S.co=null;S.job=null;S.stage=baseStage();
 }
 
 /* ================= 随机事件 ================= */
@@ -2008,13 +2028,13 @@ const CEV=[
    const c=await choose('猎头来电','一家创业公司开出比现在高 50% 的年薪挖你。',[{label:'跳槽',sub:'富贵险中求',k:'y'},{label:'留下',sub:'稳字当头',k:'n'}],1);
    if(c.k==='n'){log('猎头挖你跳槽，你选择留下。');return}
    if(R()<.65){S.job.salary=r1(S.job.salary*1.5);capSal();S.job.name='创业公司骨干';S.job.kind='private';S.jobs.push(S.job.name);log(`你跳槽了，年薪涨到 ${fmtW(S.job.salary)}。`+apply({happy:1}))}
-   else{log('你跳槽过去，结果新公司半年就倒闭了。'+apply({happy:-2}),'bad');S.job=null;S.stage='idle'}}},
+   else{log('你跳槽过去，结果新公司半年就倒闭了。'+apply({happy:-2}),'bad');S.job=null;S.stage=baseStage()}}},
  {id:'dali',a:[32,48],c:s=>s.job&&!['retired','boss'].includes(s.job.kind)&&s.cash>30,run:async()=>{
    const c=await choose('想辞职去大理','你已经很久没有真正开心过了。',[{label:'裸辞，去大理开民宿',sub:'用 30 万存款换一段自由',k:'y'},{label:'算了，继续上班',sub:'房贷还没还完',k:'n'}],1);
    if(c.k==='n'){log('你想过辞职去大理，最后还是打开了电脑。'+apply({happy:-1}));return}
    S.flags.dali=1;const ok=R()<.4+(S.flags.biz?.3:0);
    log(`你辞职去大理开了一家民宿，${ok?'生意居然还不错。':'两年后关门回了城。'}`+apply({cash:-30,happy:3}));
-   if(ok)setJob('民宿老板','small',12,true);else{S.job=null;S.stage='idle'}}},
+   if(ok)setJob('民宿老板','small',12,true);else{S.job=null;S.stage=baseStage()}}},
  {id:'idea',a:[25,48],c:s=>s.job&&!s.co&&!['retired','boss'].includes(s.job.kind)&&(s.cash>=20||s.pcash>=40),run:async()=>{
    const c=await choose('创业的念头','你看着老板的新车，心想：凭什么不能是我？',[{label:'辞职创业',sub:'放弃年薪 '+fmtW(S.job.salary)+'，赌一把',k:'y'},{label:'安心上班',sub:'打工也挺好',k:'n'}],1);
    if(c.k==='n'){log('你压下了创业的念头，继续上班。');return}
@@ -2177,18 +2197,18 @@ function startHeir(ki,mode,pickT){
     sibList:o.kids.filter(x=>x.alive&&x!==k).map(x=>({name:x.name,gender:x.gender,age:x.age,rel:mode==='split'?ri(70,85):mode==='all'?ri(15,35):60,cash:x.cash+(mode==='split'&&E.total>0?E.total/heirN:0),owed:mode==='all'&&E.total>0?r1(E.total/heirN):0,job:x.job,salary:x.salary,alive:true})),
     family:`${o.sur}氏第 ${prevGen+1} 代`,dynasty:o.dynasty.concat([{gen:prevGen,name:prevName,gender:prevGender,age:o.age,g:o.grade,net:E.total,spouse:partner&&partner.married?partner.name:'',kids:o.kids.map(x=>({name:x.name,gender:x.gender,age:x.age,alive:x.alive,spouse:x.spouse?x.spouse.name:'',gk:(x.gkids||[]).map(g=>g.name),heir:x===k}))}])});
   tal.forEach(t=>S.flags[t.id]=1);
-  S.luck=mkLuck();S.pers=mkPers(o.pers);S.tgen={};S.goal=null;S.trips=0;S.tripList=[];S.rentCity=null;S.eduLog=[];const awake=[];
+  S.luck=mkLuck();S.pers=mkPers(o.pers);S.tgen={};S.goal=null;S.trips=0;S.tripList=[];S.rentCity=null;S.eduLog=[];S.pcity=o.city;const awake=[];
   inh.forEach(t=>{const n=((o.tgen||{})[t.id]||1)+1;S.tgen[t.id]=n;if(n===3)awake.push(t)});
   S.cash=r1(k.cash+share-inKind);S.inv=ren?[]:(o.inv||[]).filter(x=>x.p>=1).map(x=>({...x,src:'继承',age:null}));
   if(k.house)S.houses.push({city:k.city,type:'small',m:.7,loan:0,pay:0,yrs:0,rent:false});
   S.parents=[{role:prevGender==='男'?'父亲':'母亲',name:prevName,age:o.age,hp:0,rel:k.rel,alive:false,note:'已故'}];
   if(partner&&partner.married)S.parents.push({role:prevGender==='男'?'母亲':'父亲',name:partner.name,age:partner.age,hp:60,rel:k.rel,alive:true});
   S.pcash=r1(spouseShare);S.pinc=0;S.sibs=sibN;S.inherited=!(partner&&partner.married);
-  if(k.stage==='work'){if(k.job){S.job={name:k.job,kind:k.jobKind||'private',salary:k.salary,org:k.org||''};attachLadder(S.job);S.jobs=[k.job];S.stage='work'}else S.stage='idle'}
+  if(k.stage==='work'){if(k.job){S.job={name:k.job,kind:k.jobKind||'private',salary:k.salary,org:k.org||'',city:k.city};attachLadder(S.job);S.jobs=[k.job];S.stage='work'}else S.stage='idle'}
   else if(k.stage==='uni'){S.stage='uni';S.pending={age:Math.max(k.gradAge,k.age+1),type:'grad'};S.edu=k.edu}
   else if(k.stage==='hs'){S.stage='school';S.pending={age:Math.max(18,k.age+1),type:k.abroad||k.hs==='intl'?'abroadUni':k.hs==='voc'?'voc':'gaokao'}}
   else S.stage=k.age>=6?'school':'baby';
-  if(S.co){S.job={name:`${S.co.name}董事长`,kind:'boss',salary:r1(clamp(S.co.val*.004,5,300))};S.stage='work'}
+  if(S.co&&!S.co.retired){S.co.city=S.city;S.job={name:`${S.co.name}董事长`,kind:'boss',salary:r1(clamp(S.co.val*.004,5,300))};S.stage='work';S.pending=S.pending&&S.pending.type==='grad'?null:S.pending}
   if(k.age>=60){S.job={name:'退休',kind:'retired',salary:r1(Math.max(1.5,(k.salary||5)*.4))};S.stage='retired'}
   if(k.married){const g=k.gender==='男'?'女':'男';S.partner={name:k.spouse?k.spouse.name:randName(g),gender:g,age:k.age+ri(-2,2),app:ri(3,8),int:ri(3,7),salary:r1(Math.max(4,(k.salary||8)*(.6+R()*.6))),job:k.spouse?k.spouse.job:pick(['老师','护士','程序员','会计','公务员','银行职员']),love:60,married:true,need:false,cash:0};S.everMarried=true;S.inlaws=mkInlaws(S.partner)}
   const gks=k.gkids&&k.gkids.length?k.gkids:Array.from({length:k.kids},(_,i)=>({name:S.sur+given(R()<.5?'男':'女'),gender:R()<.5?'男':'女',age:Math.max(0,k.age-ri(26,31)-i*2)}));
@@ -2710,7 +2730,7 @@ const JEV=[
 ];
 function jobEvent(){
   if(!S.job||R()>.3)return;const c=JEV.filter(e=>e.k===S.job.kind);if(!c.length)return;const e=pick(c);
-  if(e.fire){log(e.t+apply({happy:-2}),'bad');S.job=null;S.stage='idle';return}
+  if(e.fire){log(e.t+apply({happy:-2}),'bad');S.job=null;S.stage=baseStage();return}
   if(e.promo)S.job.promo=(S.job.promo||0)+e.promo;if(e.fame)honor(e.fame,null);
   log(e.t.replace('陆家嘴',CBD[S.city]||'CBD')+apply(e.f?e.f(S):e.d));
 }
@@ -2718,13 +2738,13 @@ function jobEvent(){
 /* 公司退出 */
 A('coSell',{n:'转让公司',h:'套现走人',en:0,show:()=>S.co&&!S.co.listed,run:async()=>{const c=S.co,v=Math.round(c.val*c.share/100*(c.stage>=2?.6:.4));
   const ch=await choose(`转让${c.name}？`,`按估值打折，你能拿到约 ${fmtW(v)}。转让后你就自由了，可以去上班或者再创业。`,[{label:'转让',k:'y'},{label:'再想想',k:'n'}],1);
-  if(ch.k!=='y')return false;S.coLog.push(`${c.name}（转让）`);S.flags.exit=1;S.co=null;S.job=null;S.stage='idle';log(`你把${c.name}转让了出去。`+apply({cash:v,happy:1}),'ms')}});
+  if(ch.k!=='y')return false;S.coLog.push(`${c.name}（转让）`);S.flags.exit=1;S.co=null;S.job=null;S.stage=baseStage();log(`你把${c.name}转让了出去。`+apply({cash:v,happy:1}),'ms')}});
 A('coClose',{n:'关停公司',h:'及时止损',en:0,show:()=>S.co&&!S.co.listed&&S.co.stage<=1,run:async()=>{const c=S.co;
   const ch=await choose(`关停${c.name}？`,'遣散员工、清算资产，能收回一点点钱。',[{label:'关停',k:'y'},{label:'再想想',k:'n'}],1);
-  if(ch.k!=='y')return false;const v=Math.round(c.val*.08);S.coLog.push(`${c.name}（关停）`);S.co=null;S.job=null;S.stage='idle';log(`你关掉了${c.name}，遣散了所有人。`+apply({cash:v,happy:-2}),'bad')}});
+  if(ch.k!=='y')return false;const v=Math.round(c.val*.08);S.coLog.push(`${c.name}（关停）`);S.co=null;S.job=null;S.stage=baseStage();log(`你关掉了${c.name}，遣散了所有人。`+apply({cash:v,happy:-2}),'bad')}});
 A('coStep',{n:'退居幕后',h:'请职业经理人，自己去干别的',en:0,show:()=>S.co&&(S.co.stage>=2||S.co.listed)&&!S.co.retired,run:async()=>{const c=S.co;
   const ch=await choose(`把${c.name}交给职业经理人？`,'你保留股份，每年分红，但公司发展会慢一些。你可以另找工作或再创业。',[{label:'退居幕后',k:'y'},{label:'再想想',k:'n'}],1);
-  if(ch.k!=='y')return false;c.retired=1;S.job=null;S.stage='idle';log(`你把${c.name}交给了职业经理人，自己退居幕后。`,'ms')}});
+  if(ch.k!=='y')return false;c.retired=1;S.job=null;S.stage=baseStage();log(`你把${c.name}交给了职业经理人，自己退居幕后。`,'ms')}});
 
 /* ================= UX：按钮不可用的原因 ================= */
 function whyNot(id,t){
@@ -3287,7 +3307,7 @@ async function dilemmaTick(){
 /* 东窗事发与坐牢 */
 function lawTick(){
   if(S.jail>0){S.jail--;S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel-4,0,100)});kidsAlive().forEach(k=>k.rel=clamp(k.rel-5,0,100));
-    if(S.jail===0){S.stage='idle';S.flags.exCon=1;log('你刑满释放了。走出监狱大门，外面的世界变了很多。'+apply({happy:2}),'ms')}
+    if(S.jail===0){S.stage=baseStage();S.flags.exCon=1;log('你刑满释放了。走出监狱大门，外面的世界变了很多。'+apply({happy:2}),'ms')}
     else log(`你在监狱里又过了一年，还剩 ${S.jail} 年。`+apply({happy:-1,hp:-2}),'bad');
     if(married()&&R()<.25){log(`${spouseWord()}${S.partner.name}受不了了，提出离婚。`,'bad');S.partner=null;S.inlaws=null;S.everMarried=true;S.flags.divorced=1}
     return}
@@ -3298,7 +3318,7 @@ function lawTick(){
     S.flags.caught=1;S.fame=Math.max(0,(S.fame||0)-20);
     const ret=S.job&&S.job.kind==='retired';log(`东窗事发！${ret?'退休前':S.job?S.job.name+'任上的':''}问题被查了出来。没收违法所得，罚款 ${fmtW(fine)}。`+apply({cash:-fine,happy:-5}),'bad');
     if(S.job&&S.job.kind!=='retired'){S.job=null;S.co=null}
-    if(yrs){goJail(yrs);log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else if(ret){S.job.salary=r1(S.job.salary*.5);log('退休待遇被取消了一半。','bad')}else{S.stage='idle';log('你被开除了，档案上留下了处分。','bad')}
+    if(yrs){goJail(yrs);log(`你被判处有期徒刑 ${yrs} 年。`,'bad')}else if(ret){S.job.salary=r1(S.job.salary*.5);log('退休待遇被取消了一半。','bad')}else{const bs=baseStage();S.stage=bs;log(bs==='uni'||bs==='school'?'学校给了你记过处分。':bs==='idle'?'你被开除了，档案上留下了处分。':'这事传开了，名声很难听。','bad')}
     S.dirty=0;
   }else if(R()<.1)S.dirty=Math.max(0,S.dirty-1);
 }
@@ -3657,7 +3677,7 @@ const OLDEV=[
  {id:'memoir',run:async()=>{log('你开始写回忆录，把这一辈子的事写了下来。'+apply({happy:2}));honor(2,null)}},
  {id:'gkplay',c:()=>gkAll().length,run:async()=>{const g=pick(gkAll());log(`孙辈${g.name}放假来你家住了一个月，家里热闹得不得了。`+apply({happy:3}))}},
  {id:'phone',run:async()=>{log('你学会了用智能手机，天天在家族群里发表情包、抢红包。'+apply({happy:1}))}},
- {id:'hometown',c:()=>S.city!=='home',run:async()=>{const c=await choose('落叶归根？',`你在${cn(S.city)}住了大半辈子，老家的亲戚说回来养老空气好。`,[{label:'回老家养老',k:'y'},{label:'留在这里',k:'n'}],1);if(c.k==='y'){S.city='home';log('你回到了老家，每天种种菜、晒晒太阳。'+apply({happy:2,hp:2}))}else log('你决定留在城里，离孩子近一点。')}},
+ {id:'hometown',c:()=>S.city!=='home',run:async()=>{const c=await choose('落叶归根？',`你在${cn(S.city)}住了大半辈子，老家的亲戚说回来养老空气好。`,[{label:'回老家养老',k:'y'},{label:'留在这里',k:'n'}],1);if(c.k==='y'){relocate('home','回乡养老');log('你回到了老家，每天种种菜、晒晒太阳。'+apply({happy:2,hp:2}))}else log('你决定留在城里，离孩子近一点。')}},
  {id:'carehome',c:()=>S.age>=78,run:async()=>{const kid=kidsAlive().filter(k=>k.age>=30).sort((a,b)=>b.rel-a.rel)[0];
    const c=await choose('晚年住哪儿','年纪大了，一个人住不太安全。',[{label:'住高端养老院',sub:'一次性 30 万',k:'home',dis:S.cash<30},...(kid?[{label:`搬去和${kid.name}住`,sub:kid.rel>=60?'孩子很乐意':'孩子有点为难',k:'kid'}]:[]),{label:'坚持独居',sub:'自在，但有风险',k:'alone'}],kid&&kid.rel>=60?1:0);
    if(c.k==='home'){S.cash=r1(S.cash-30);log('你住进了高端养老院，有人照顾，还交了几个牌友。'+apply({hp:5,happy:1}))}else if(c.k==='kid'){if(kid.rel>=60){kid.rel=clamp(kid.rel+5,0,100);log(`你搬去和${kid.name}一起住，每天看着孙辈长大。`+apply({happy:3}))}else{kid.rel=clamp(kid.rel-10,0,100);log(`你搬去和${kid.name}住，可是和${kid.spouse?kid.spouse.name:'孩子'}处不来。`+apply({happy:-2}),'bad')}}else{S.flags.alone=1;log('你坚持一个人住。'+apply({happy:1}))}}},
@@ -3722,7 +3742,7 @@ async function takeOffer(){
   const est=r1(o.base*(1+.1*(S.eduRank-3))*CITIES[o.city].sal*1.05);
   const c=await choose('毕业了 · 转正 offer',`实习时${o.org}给了你${o.name}的转正 offer，在${cn(o.city)}，年薪约 ${fmtW(est)}。直接入职，还是看看别的路（考研、考公、出国、创业、换城市）？`,[{label:`去${o.org}报到`,sub:`${o.name} · ${cn(o.city)} · 实习表现好，入职就有升职积累`,k:'y'},{label:'放弃 offer，另做打算',k:'n'}],0);
   if(c.k!=='y'){log(`你拒绝了${o.org}的转正 offer。`);return false}
-  if(S.city!==o.city)log(`你回到实习过的${cn(o.city)}。`);S.city=o.city;S.cityChosen=true;
+  if(S.city!==o.city){log(`你回到实习过的${cn(o.city)}。`);relocate(o.city,'入职')}S.cityChosen=true;
   setJob(o.name,o.kind,o.base,false,o.org);S.job.salary=r1(S.job.salary*1.05);capSal();if(S.job.track)S.job.promo=(S.job.promo||0)+2;
   log('因为实习时就熟悉业务，你一入职就上手了。','dim');return true;
 }
@@ -3935,14 +3955,16 @@ function homeStatus(){
   if(S.jail>0)return {k:'jail',spr:'h_jail',n:'看守所',sub:`服刑中，还剩 ${S.jail} 年`};
   if(S.stage==='uni'&&!ownsIn(S.city))return {k:'dorm',spr:'h_dorm',n:`${S.school||'学校'}宿舍`,sub:'上学期间住宿舍，不用交房租'};
   if(ownsIn(S.city)){const h=S.houses.find(x=>x.city===S.city&&!x.rent);return {k:'own',spr:'h_'+(h.type==='old'?'old':h.type),n:`${cn(S.city)} · ${HTYPE[h.type].n}`,sub:h.loan>0?`自己的房子 · 房贷还剩 ${fmtW(h.loan)}，每年还 ${fmtW(h.pay)}`:'自己的房子，没有贷款'}}
-  if(liveWithParents())return {k:'parents',spr:'h_old',n:`${cshort(S.phome.city)} · 父母家`,sub:S.age<18?'还住在家里':'住在父母家，省下房租；结婚后要自己住'};
+  if(liveWithParents())return {k:'parents',spr:'h_old',n:`${cshort(S.phome.city)} · 父母家`,sub:S.age<18?'还住在家里':married()?'和父母同住，省下房租，但伴侣感情会慢慢掉':'住在父母家，省下房租；结婚后默认要搬出去'};
   if(!isAdult())return {k:'parents',spr:'h_old',n:'父母家',sub:'还住在家里'};
   const t=curRent()||'whole';return {k:'rent',spr:'h_'+t,n:`${cn(S.city)} · ${RENT[t].n}`,sub:`租的 · 每年房租 ${fmtW(r1(C().rent*rentM()))}${S.phome&&S.phome.city!==S.city&&S.parents.some(p=>p.alive)?'（父母家在'+cshort(S.phome.city)+'，回去就不用租房）':''}`};
 }
 function homeCardHTML(){
   const h=homeStatus();
-  return `<div class="paper homecard"><span class="hspr">${pixArt(h.spr,56)}</span><div class="hinfo"><span class="lab">现在住在</span><b>${h.n}</b><span class="quiet">${h.sub}</span></div><div class="minis">${h.k==='rent'?miniBtn('rentHome'):''}${S.houses.some(x=>x.city!==S.city&&!x.rent)?miniBtn('moveOwn'):''}</div></div>`;
+  return `<div class="paper homecard"><span class="hspr">${pixArt(h.spr,56)}</span><div class="hinfo"><span class="lab">现在住在</span><b>${h.n}</b><span class="quiet">${h.sub}</span></div><div class="minis">${h.k==='rent'?miniBtn('rentHome'):''}${miniBtn('livePar')}${S.houses.some(x=>x.city!==S.city&&!x.rent)?miniBtn('moveOwn'):''}${S.parents.some(p=>p.alive)&&S.phome&&S.phome.city!==S.city&&isAdult()?miniBtn('move',S.phome.city,'回父母身边'):''}</div></div>`;
 }
+A('livePar',{n:()=>S.livePar?'从父母家搬出去':'搬去和父母同住',h:()=>S.livePar?'自己租房，伴侣会高兴些':'省下房租，伴侣感情每年 -3',en:0,show:()=>married()&&S.parents.some(p=>p.alive)&&S.phome&&S.phome.city===S.city&&!ownsIn(S.city)&&S.stage!=='uni'&&!S.jail,run:async()=>{
+  S.livePar=S.livePar?0:1;if(S.livePar){S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel+6,0,100)});log(`你们搬去和父母同住，省了房租${S.partner.name}嘴上没说什么。`)}else{S.rentCity=null;log('你们从父母家搬了出来，自己租房住。'+apply({happy:1}))}}});
 A('moveOwn',{n:'搬去自己的房子住',en:1,show:()=>isAdult()&&!S.jail&&!ownsIn(S.city)&&S.houses.some(x=>x.city!==S.city&&!x.rent),run:async()=>{
   const hs=S.houses.filter(x=>x.city!==S.city&&!x.rent);
   const c=await choose('搬去哪套房？','搬城市意味着要辞掉现在的工作。',hs.map(x=>({label:`${cn(x.city)} · ${HTYPE[x.type].n}`,sub:S.job&&!['retired','boss'].includes(S.job.kind)?`要辞掉${S.job.name}`:'',k:x.city})).concat([{label:'算了',k:0}]),0);
@@ -4048,7 +4070,7 @@ gift:['............','....cc.cc...','.....ccc....','.rrrrrrrrrr.','.rrrrccrrrr.'
 dice:['............','..kkkkkkkk..','.kwwwwwwwwk.','.kwkwwwwkwk.','.kwwwwwwwwk.','.kwwwwkwwwk.','.kwwwwwwwwk.','.kwkwwwwkwk.','.kwwwwwwwwk.','..kkkkkkkk..','............','............'],
 badge:['............','....cccc....','...cyyyyc...','..cyyccyyc..','..cycccc yc.','..cyyccyyc..','...cyyyyc...','....cccc....','...r....r...','..rr....rr..','............','............'],
 });
-const AICON={study:'book',play:'ball',hobby:'guitar',hobbyGig:'coins',body:'scale',gym:'gymcard',cure:'pill',beauty:'mirror',therapy:'heart',relax:'bed',travel:'trip',
+const AICON={livePar:'h_old',move:'trip',study:'book',play:'ball',hobby:'guitar',hobbyGig:'coins',body:'scale',gym:'gymcard',cure:'pill',beauty:'mirror',therapy:'heart',relax:'bed',travel:'trip',
  work:'brief',jobhunt:'resume',famBiz:'building',ot:'clock',party:'wine',side:'money',stream:'stream',kaogong:'seal',kaoyan:'cap',startup:'rocket',coStep:'door',coSell:'money',coClose:'xmark',quit:'door',
  shop:'cart',wish:'star',rentHome:'h_whole',moveOwn:'h_std',paAsk:'envelope',buyCar:'car',fortune:'crystal',will:'scroll',research:'chart',invest:'chart',lottery:'ticket',uniLife:'cap',reunion:'table',sbSettle:'hands',buyHouse:'h_std'};
 const SCENE=[[/算命|大师|运势/,'master'],[/医院|生病|住院|体检|手术|癌|病/,'hospital'],[/高考|中考|小学|大学|考研|读博|保研|专业|学业|竞赛|实习|考证|学生会|社团|联谊|毕业/,'school'],[/结婚|求婚|婚礼|订婚|婚姻|离婚/,'wedding'],[/出生|孩子|取名|怀孕|生娃|改名/,'baby'],[/买房|房子|租房|搬|住哪|房东|拆迁/,'h_std'],[/买车|提车|车/,'car'],
@@ -4142,9 +4164,9 @@ const SCRIPTS={
   end:s=>s.age>=40&&!s.jail&&net(s)>0&&!(s.dirty>0),endT:'浪子回头：中年以后清清白白'},
  abroad:{n:'远走他乡',trend:'漂泊半生，终要归根',w:s=>s.st.money>=5?18:6,poem:['一纸机票别故园','他乡月色照无眠','千山万水走遍后','最忆家门一盏灯'],
   plot:[{a:[20,25],run:async()=>{if(isOv(S.city))return;const c=await choose('远方的邀请','一个出国的机会摆在面前：留学或工作签证已经办好，只差你点头。',[{label:'走',sub:'去海外闯荡',k:'y'},{label:'留下',k:'n'}],0);
-     if(c.k==='y'){const t=pick(OVS);if(S.job)S.job=null;S.stage=S.stage==='uni'?'uni':'idle';S.city=t;S.cityChosen=true;S.flags.abroadEver=1;log(`你一个人提着箱子去了${cn(t)}。`+apply({happy:1}),'ms')}else log('你留下了，偶尔会想：如果当初走了呢？')}},
+     if(c.k==='y'){const t=pick(OVS);relocate(t,'出国');if(S.stage==='uni'){S.stage='idle';S.pending=null;S.edu=S.edu.replace('在读','肄业')}log(`你一个人提着箱子去了${cn(t)}。`+apply({happy:1}),'ms')}else log('你留下了，偶尔会想：如果当初走了呢？')}},
    {a:[33,40],run:async()=>{if(isOv(S.city)){S.parents.forEach(p=>{if(p.alive)p.rel=clamp(p.rel-8,0,100)});log('视频里父母老了很多，你隔着屏幕说不出话。'+apply({happy:-2}))}else log('老同学从国外回来，说那边也不过如此。'+apply({happy:1}))}},
-   {a:[58,66],run:async()=>{if(isOv(S.city)){const c=await choose('落叶归根','年纪大了，要不要回国养老？',[{label:'回去',k:'y'},{label:'留在这里',k:'n'}],0);if(c.k==='y'){S.city='home';S.flags.haigui=1;log('你回到了出生的小镇，一切都变了，又好像没变。'+apply({happy:3}),'gold')}else log('你决定留在第二故乡。'+apply({happy:1}))}}}],
+   {a:[58,66],run:async()=>{if(isOv(S.city)){const c=await choose('落叶归根','年纪大了，要不要回国养老？',[{label:'回去',k:'y'},{label:'留在这里',k:'n'}],0);if(c.k==='y'){relocate(pcity()==='home'?'home':pcity(),'落叶归根');S.flags.haigui=1;log('你回到了出生的地方，一切都变了，又好像没变。'+apply({happy:3}),'gold')}else log('你决定留在第二故乡。'+apply({happy:1}))}}}],
   end:s=>s.flags.abroadEver&&(s.city==='home'||s.flags.pr),endT:'他乡故乡：走过世界，有了归处'},
 };
 function pickScript(){const ws=Object.entries(SCRIPTS).map(([k,v])=>({k,w:v.w(S)})).filter(x=>x.w>0);return pickW(ws).k}
